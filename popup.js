@@ -37,14 +37,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     chrome.storage.local.set({ settings: newSettings }, () => {
       chrome.runtime.sendMessage({ action: "updateContextMenus" });
-      saveFeedback.style.opacity = "1";
+      saveFeedback.style.visibility = "visible";
       modalSaveBtn.disabled = true;
 
       setTimeout(() => {
-        saveFeedback.style.opacity = "0";
+        saveFeedback.style.visibility = "hidden";
         modalSaveBtn.disabled = false;
         lawModal.style.display = "none";
-      }, 1200);
+      }, 500);
     });
   });
 
