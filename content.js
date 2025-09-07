@@ -1,47 +1,99 @@
-// content.js
+let currentIcon = null;
 
-// 페이지 로딩이 완료된 후 500ms 정도 후에 실행하여
-// 페이지 제목이 완전히 렌더링될 시간을 확보합니다.
-window.setTimeout(() => {
-  const isErrorPage = document.title.includes("에러(404)");
-
-  // 1. 404 에러 페이지 처리 (기존과 동일)
-  if (isErrorPage) {
-    document.body.innerHTML = `
-            <style>
-                body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #ffffff; color: #333; }
-                .error-container { padding: 2em; }
-                .error-icon { font-size: 3em; margin-bottom: 0.5em; display: block; }
-                h2 { margin: 0 0 10px 0; color: #d9534f; font-size: 1.5em; }
-                p { margin: 0 0 0.5em 0; color: #000000; line-height: 1.6; }
-            </style>
-            <div class="error-container">
-                <div class="error-icon">🚫</div>
-                <h2>검색 결과를 찾을 수 없습니다</h2>
-                <p>선택하신 내용에 해당하는 정보를 CaseNote에서 찾지 못했습니다.</p>
-                <p>입력하신 법률/판례 번호 또는 조문 형식을 다시 확인해주세요.</p>
-            </div>
-        `;
-    return; // 에러 페이지 처리 후 종료
+const createSearchIcon = (x, y, selectedText) => {
+  console.log("3. createSearchIcon 함수 실행됨");
+  if (currentIcon) {
+    currentIcon.remove();
+    currentIcon = null;
+    console.log(" - 기존 아이콘 제거됨");
   }
 
-  // 2. 페이지 제목을 정리하여 background로 전송
-  const originalTitle = document.title;
+  const icon = document.createElement("div");
+  icon.id = "casenote-search-icon";
+  icon.style.cssText = `
+    position: absolute;
+    top: ${y + window.scrollY}px;
+    left: ${x + window.scrollX}px;
+    z-index: 99999;
+    cursor: pointer;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 10%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    padding: 0;
+  `;
+  const img = document.createElement("img");
+  img.src = chrome.runtime.getURL("images/icon48.png");
+  console.log(" - 이미지 경로:", img.src); // 이미지 경로가 올바른지 확인
+  img.style.width = "30px";
+  img.style.height = "30px";
+  icon.appendChild(img);
 
-  // " - CaseNote" 라는 접미사가 있는지 확인하고, 있다면 제거
+  icon.addEventListener("click", (event) => {
+    event.stopPropagation();
+    chrome.runtime.sendMessage({
+      action: "intelligentSearchFromIcon",
+      selection: selectedText,
+    });
+    icon.remove();
+    currentIcon = null;
+  });
+
+  document.body.appendChild(icon);
+  currentIcon = icon;
+  console.log("4. 아이콘이 body에 추가됨", icon);
+};
+
+const hideSearchIcon = (event) => {
+  if (
+    currentIcon &&
+    event.target !== currentIcon &&
+    !currentIcon.contains(event.target)
+  ) {
+    currentIcon.remove();
+    currentIcon = null;
+    console.log("hideSearchIcon: 아이콘 숨김 처리됨");
+  }
+};
+
+document.addEventListener("mouseup", (event) => {
+  console.log("1. mouseup 이벤트 감지됨");
+  setTimeout(() => {
+    const selection = window.getSelection();
+    const selectedText = selection.toString().trim();
+    if (selectedText.length > 0 && selection.rangeCount > 0) {
+      console.log("2. 텍스트 선택 확인:", selectedText);
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      console.log(" - 선택 영역 좌표:", rect);
+      createSearchIcon(rect.right - 32, rect.bottom + 5, selectedText);
+    }
+  }, 1);
+});
+
+document.addEventListener("mousedown", hideSearchIcon);
+document.addEventListener("scroll", hideSearchIcon);
+
+// 페이지 로딩이 완료된 후 100ms 정도 후에 실행
+window.setTimeout(() => {
+  const originalTitle = document.title;
   const suffix = " - CaseNote";
   const cleanedTitle = originalTitle.endsWith(suffix)
     ? originalTitle.slice(0, -suffix.length)
     : originalTitle;
 
-  // 검색 결과 페이지는 히스토리를 업데이트하지 않도록 제외
   const isSearchPage = window.location.href.includes("/search/");
 
   if (!isSearchPage && cleanedTitle) {
     chrome.runtime.sendMessage({
       action: "updateHistoryTitle",
       url: window.location.href,
-      newTitle: cleanedTitle.trim(), // 앞뒤 공백 제거
+      newTitle: cleanedTitle.trim(),
     });
   }
-}, 100); // 0.5초 지연
+}, 100);

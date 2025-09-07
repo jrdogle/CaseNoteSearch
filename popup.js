@@ -1,23 +1,18 @@
-// popup.js
-
+import { SUPPORTED_ITEMS, DEFAULT_SETTINGS } from './constants.js';
 document.addEventListener("DOMContentLoaded", () => {
-  // 지원 목록 (background.js와 동일)
-  const SUPPORTED_ITEMS = {
-    civilLaw: { type: "law", displayName: "민법" },
-    constitution: { type: "law", displayName: "헌법" },
-    criminalLaw: { type: "law", displayName: "형법" },
-  };
-
-  // 기본 설정값 (법률 항목만 남김)
-  const DEFAULT_SETTINGS = {
-    civilLaw: true,
-    constitution: true,
-    criminalLaw: true,
-  };
-
   const settingsContainer = document.getElementById("settings-container");
   const historyListEl = document.getElementById("history-list");
   const historyEmptyMsg = document.getElementById("history-empty-msg");
+  const clearHistoryBtn = document.getElementById("clear-history-btn");
+
+  //'전체 삭제' 버튼 클릭 이벤트 리스너 추가
+  clearHistoryBtn.addEventListener("click", () => {
+    if (confirm("정말로 모든 조회 기록을 삭제하시겠습니까?")) {
+      chrome.storage.local.set({ history: [] }, () => {
+        console.log("모든 기록이 삭제되었습니다.");
+      });
+    }
+  });
 
   // 저장된 설정을 불러와 토글 스위치를 그리는 함수
   const renderToggles = () => {

@@ -117,18 +117,45 @@
         padding: 20px 0;
         font-size: 13px;
       }
+      .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .history-header h4 {
+        margin: 0;
+        padding-bottom: 5px;
+        border-bottom: none;
+      }
+      #clear-history-btn {
+        border: none;
+        background-color: transparent;
+        color: #888;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 5px;
+      }
+      #clear-history-btn:hover {
+        color: #d9534f;
+      }
     </style>
   </head>
   <body>
     <h2 id="main-title">🔎 CaseNote 검색기</h2>
 
-    <h4>📜 우클릭 법률 메뉴 설정</h4>
+    <h4>법률 메뉴 설정</h4>
     <div id="settings-container"></div>
 
-    <h4>⏳ 최근 조회 기록</h4>
+    <div class="history-header">
+      <h4>최근 조회 기록</h4>
+      <button id="clear-history-btn" title="전체 기록 삭제">전체 삭제</button>
+    </div>
     <ul id="history-list"></ul>
     <p id="history-empty-msg" style="display: none">기록이 없습니다.</p>
 
-    <script src="popup.js"></script>
+    <script src="popup.js" type="module"></script>
   </body>
 </html>
