@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>메뉴 관리</title>
+    <meta charset="UTF-8" />
+    <style>
+      /* 기본 스타일 */
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        width: 280px;
+        padding: 10px;
+        color: #333;
+      }
+
+      /* --- ✨ 추가된 제목 스타일 --- */
+      #main-title {
+        margin-top: 0;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        font-size: 18px;
+        text-align: center;
+        color: #444;
+      }
+
+      h4 {
+        margin-top: 15px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 5px;
+        font-size: 14px;
+        color: #555;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      /* 설정 항목 (토글) */
+      .setting-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 4px;
+        font-size: 14px;
+      }
+
+      /* 토글 스위치 CSS */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+        border-radius: 24px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+      input:checked + .slider {
+        background-color: #007aff;
+      }
+      input:checked + .slider:before {
+        transform: translateX(20px);
+      }
+
+      /* 최근 조회 기록 리스트 CSS */
+      #history-list li {
+        display: flex;
+        align-items: center;
+        padding: 8px 4px;
+        font-size: 14px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      #history-list li:last-child {
+        border-bottom: none;
+      }
+      .history-item-text {
+        flex-grow: 1;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .history-item-text:hover {
+        color: #007aff;
+      }
+      .history-delete-btn {
+        cursor: pointer;
+        color: #aaa;
+        font-weight: bold;
+        font-size: 20px;
+        padding: 0 8px;
+        flex-shrink: 0;
+        line-height: 1;
+      }
+      .history-delete-btn:hover {
+        color: #d9534f;
+      }
+      #history-empty-msg {
+        color: #888;
+        text-align: center;
+        padding: 20px 0;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2 id="main-title">🔎 CaseNote 검색기</h2>
+
+    <h4>📜 법률 메뉴 설정</h4>
+    <div id="law-settings-container"></div>
+
+    <h4>🏛️ 판례 메뉴 설정</h4>
+    <div id="precedent-settings-container"></div>
+
+    <h4>⏳ 최근 조회 기록</h4>
+    <ul id="history-list"></ul>
+    <p id="history-empty-msg" style="display: none">기록이 없습니다.</p>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

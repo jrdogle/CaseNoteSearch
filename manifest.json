@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "CaseNote 검색기",
+  "version": "1.0.1",
+  "description": "자주 쓰는 법률/판례를 선택하여, 텍스트를 CaseNote 팝업으로 빠르게 엽니다.",
+  "permissions": [
+    "contextMenus",
+    "system.display",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://casenote.kr/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
