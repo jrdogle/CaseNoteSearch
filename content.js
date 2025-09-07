@@ -1,39 +1,19 @@
-// 페이지 로딩이 완료된 후 실행되도록 합니다.
-window.addEventListener('load', () => {
-    // Casenote 404 페이지인지 제목(title)으로 확인합니다.
-    const isErrorPage = document.title.includes('에러(404)');
+// content.js
 
-    // 만약 오류 페이지가 맞다면, 내용을 더 명확한 메시지로 교체합니다.
-    if (isErrorPage) {
-        document.body.innerHTML = `
+// 페이지 로딩이 완료된 후 500ms 정도 후에 실행하여
+// 페이지 제목이 완전히 렌더링될 시간을 확보합니다.
+window.setTimeout(() => {
+  const isErrorPage = document.title.includes("에러(404)");
+
+  // 1. 404 에러 페이지 처리 (기존과 동일)
+  if (isErrorPage) {
+    document.body.innerHTML = `
             <style>
-                /* 기본 스타일 초기화 및 설정 */
-                body {
-                    margin: 0;
-                    padding: 0;
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-                    background-color: #ffffff; /* 흰색 배경 */
-                    color: #333;
-                }
-                /* 콘텐츠 컨테이너에 여백 추가 */
-                .error-container {
-                    padding: 2em; /* 위, 아래, 좌, 우에 여백 */
-                }
-                .error-icon {
-                    font-size: 3em; /* 아이콘 크기 */
-                    margin-bottom: 0.5em;
-                    display: block;
-                }
-                h2 {
-                    margin: 0 0 10px 0;
-                    color: #d9534f;
-                    font-size: 1.5em;
-                }
-                p {
-                    margin: 0 0 0.5em 0; /* 단락 아래에 약간의 여백 */
-                    color: #000000;
-                    line-height: 1.6;
-                }
+                body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #ffffff; color: #333; }
+                .error-container { padding: 2em; }
+                .error-icon { font-size: 3em; margin-bottom: 0.5em; display: block; }
+                h2 { margin: 0 0 10px 0; color: #d9534f; font-size: 1.5em; }
+                p { margin: 0 0 0.5em 0; color: #000000; line-height: 1.6; }
             </style>
             <div class="error-container">
                 <div class="error-icon">🚫</div>
@@ -42,5 +22,26 @@ window.addEventListener('load', () => {
                 <p>입력하신 법률/판례 번호 또는 조문 형식을 다시 확인해주세요.</p>
             </div>
         `;
-    }
-});
+    return; // 에러 페이지 처리 후 종료
+  }
+
+  // 2. 페이지 제목을 정리하여 background로 전송
+  const originalTitle = document.title;
+
+  // " - CaseNote" 라는 접미사가 있는지 확인하고, 있다면 제거
+  const suffix = " - CaseNote";
+  const cleanedTitle = originalTitle.endsWith(suffix)
+    ? originalTitle.slice(0, -suffix.length)
+    : originalTitle;
+
+  // 검색 결과 페이지는 히스토리를 업데이트하지 않도록 제외
+  const isSearchPage = window.location.href.includes("/search/");
+
+  if (!isSearchPage && cleanedTitle) {
+    chrome.runtime.sendMessage({
+      action: "updateHistoryTitle",
+      url: window.location.href,
+      newTitle: cleanedTitle.trim(), // 앞뒤 공백 제거
+    });
+  }
+}, 100); // 0.5초 지연

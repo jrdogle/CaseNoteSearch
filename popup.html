@@ -4,7 +4,6 @@
     <title>메뉴 관리</title>
     <meta charset="UTF-8" />
     <style>
-      /* 기본 스타일 */
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           sans-serif;
@@ -12,8 +11,6 @@
         padding: 10px;
         color: #333;
       }
-
-      /* --- ✨ 추가된 제목 스타일 --- */
       #main-title {
         margin-top: 0;
         margin-bottom: 15px;
@@ -22,7 +19,6 @@
         text-align: center;
         color: #444;
       }
-
       h4 {
         margin-top: 15px;
         margin-bottom: 8px;
@@ -36,8 +32,6 @@
         padding: 0;
         margin: 0;
       }
-
-      /* 설정 항목 (토글) */
       .setting-item {
         display: flex;
         justify-content: space-between;
@@ -45,8 +39,6 @@
         padding: 8px 4px;
         font-size: 14px;
       }
-
-      /* 토글 스위치 CSS */
       .switch {
         position: relative;
         display: inline-block;
@@ -87,8 +79,6 @@
       input:checked + .slider:before {
         transform: translateX(20px);
       }
-
-      /* 최근 조회 기록 리스트 CSS */
       #history-list li {
         display: flex;
         align-items: center;
@@ -132,11 +122,8 @@
   <body>
     <h2 id="main-title">🔎 CaseNote 검색기</h2>
 
-    <h4>📜 법률 메뉴 설정</h4>
-    <div id="law-settings-container"></div>
-
-    <h4>🏛️ 판례 메뉴 설정</h4>
-    <div id="precedent-settings-container"></div>
+    <h4>📜 우클릭 법률 메뉴 설정</h4>
+    <div id="settings-container"></div>
 
     <h4>⏳ 최근 조회 기록</h4>
     <ul id="history-list"></ul>
