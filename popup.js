@@ -1,11 +1,12 @@
-import { ALL_SUPPORTED_LAWS, DEFAULT_SETTINGS } from './constants.js';
+import { ALL_SUPPORTED_LAWS, DEFAULT_SETTINGS } from "./constants.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const selectedLawsContainer = document.getElementById("settings-container");
   const settingsEmptyMsg = document.getElementById("settings-empty-msg");
   const historyListEl = document.getElementById("history-list");
   const historyEmptyMsg = document.getElementById("history-empty-msg");
-  
+  const saveFeedback = document.getElementById("save-feedback");
+
   const manageLawsBtn = document.getElementById("manage-laws-btn");
   const lawModal = document.getElementById("law-modal");
   const modalLawsListEl = document.getElementById("modal-laws-list");
@@ -21,16 +22,29 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  modalCancelBtn.addEventListener("click", () => { lawModal.style.display = "none"; });
-  
+  modalCancelBtn.addEventListener("click", () => {
+    lawModal.style.display = "none";
+  });
+
   modalSaveBtn.addEventListener("click", () => {
     const newSettings = {};
-    const checkboxes = modalLawsListEl.querySelectorAll("input[type='checkbox']");
-    checkboxes.forEach(checkbox => { newSettings[checkbox.dataset.id] = checkbox.checked; });
+    const checkboxes = modalLawsListEl.querySelectorAll(
+      "input[type='checkbox']"
+    );
+    checkboxes.forEach((checkbox) => {
+      newSettings[checkbox.dataset.id] = checkbox.checked;
+    });
 
     chrome.storage.local.set({ settings: newSettings }, () => {
       chrome.runtime.sendMessage({ action: "updateContextMenus" });
-      lawModal.style.display = "none";
+      saveFeedback.style.opacity = "1";
+      modalSaveBtn.disabled = true;
+
+      setTimeout(() => {
+        saveFeedback.style.opacity = "0";
+        modalSaveBtn.disabled = false;
+        lawModal.style.display = "none";
+      }, 1200);
     });
   });
 
@@ -39,24 +53,24 @@ document.addEventListener("DOMContentLoaded", () => {
   // 모달에 전체 법률 목록을 카테고리별로 렌더링
   const renderModalLaws = (currentSettings) => {
     modalLawsListEl.innerHTML = "";
-    
+
     const lawsByCategory = groupLawsByCategory(ALL_SUPPORTED_LAWS);
 
-    categoryOrder.forEach(categoryName => {
+    categoryOrder.forEach((categoryName) => {
       if (lawsByCategory[categoryName]) {
-        const categoryDiv = document.createElement('div');
-        const categoryTitle = document.createElement('div');
-        categoryTitle.className = 'modal-category-title';
+        const categoryDiv = document.createElement("div");
+        const categoryTitle = document.createElement("div");
+        categoryTitle.className = "modal-category-title";
         categoryTitle.textContent = categoryName;
         categoryDiv.appendChild(categoryTitle);
 
-        lawsByCategory[categoryName].forEach(law => {
+        lawsByCategory[categoryName].forEach((law) => {
           const label = document.createElement("label");
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
           checkbox.dataset.id = law.id;
           checkbox.checked = currentSettings[law.id] === true;
-          
+
           label.appendChild(checkbox);
           label.appendChild(document.createTextNode(law.displayName));
           categoryDiv.appendChild(label);
@@ -71,32 +85,32 @@ document.addEventListener("DOMContentLoaded", () => {
     chrome.storage.local.get({ settings: DEFAULT_SETTINGS }, (result) => {
       const settings = result.settings;
       const enabledLaws = Object.keys(ALL_SUPPORTED_LAWS)
-        .filter(id => settings[id] === true)
-        .map(id => ({ id, ...ALL_SUPPORTED_LAWS[id] }));
+        .filter((id) => settings[id] === true)
+        .map((id) => ({ id, ...ALL_SUPPORTED_LAWS[id] }));
 
       selectedLawsContainer.innerHTML = "";
-      
+
       if (enabledLaws.length === 0) {
         settingsEmptyMsg.style.display = "block";
         return;
       }
-      
+
       settingsEmptyMsg.style.display = "none";
       const lawsByCategory = groupLawsByCategory(enabledLaws);
 
-      categoryOrder.forEach(categoryName => {
+      categoryOrder.forEach((categoryName) => {
         if (lawsByCategory[categoryName]) {
-          const groupDiv = document.createElement('div');
-          groupDiv.className = 'law-category-group';
-          
-          const titleSpan = document.createElement('span');
-          titleSpan.className = 'law-category-title';
-          titleSpan.textContent = categoryName;
-          
-          const ul = document.createElement('ul');
-          ul.className = 'selected-laws-list';
+          const groupDiv = document.createElement("div");
+          groupDiv.className = "law-category-group";
 
-          lawsByCategory[categoryName].forEach(law => {
+          const titleSpan = document.createElement("span");
+          titleSpan.className = "law-category-title";
+          titleSpan.textContent = categoryName;
+
+          const ul = document.createElement("ul");
+          ul.className = "selected-laws-list";
+
+          lawsByCategory[categoryName].forEach((law) => {
             const li = document.createElement("li");
             li.textContent = law.displayName;
             ul.appendChild(li);
@@ -112,13 +126,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Helper 함수: 법률 목록을 카테고리별로 그룹화 ---
   const groupLawsByCategory = (laws) => {
-    const lawMap = Array.isArray(laws) ? laws : Object.keys(laws).map(id => ({ id, ...laws[id] }));
+    const lawMap = Array.isArray(laws)
+      ? laws
+      : Object.keys(laws).map((id) => ({ id, ...laws[id] }));
     return lawMap.reduce((acc, law) => {
       (acc[law.category] = acc[law.category] || []).push(law);
       return acc;
     }, {});
   };
-
 
   // --- 히스토리 관련 로직 ---
 
@@ -133,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const history = result.history.slice(0, 5);
       historyListEl.innerHTML = "";
       historyEmptyMsg.style.display = history.length === 0 ? "block" : "none";
-      
+
       history.forEach((item, index) => {
         const li = document.createElement("li");
         const textSpan = document.createElement("span");
@@ -160,7 +175,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const deleteHistoryItem = (indexToDelete) => {
     chrome.storage.local.get({ history: [] }, (result) => {
-      const updatedHistory = result.history.filter((_, index) => index !== indexToDelete);
+      const updatedHistory = result.history.filter(
+        (_, index) => index !== indexToDelete
+      );
       chrome.storage.local.set({ history: updatedHistory });
     });
   };

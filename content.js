@@ -1,26 +1,35 @@
 let currentIcon = null;
 
 const createSearchIcon = (x, y, selectedText) => {
-  console.log("3. createSearchIcon 함수 실행됨");
   if (currentIcon) {
     currentIcon.remove();
     currentIcon = null;
-    console.log(" - 기존 아이콘 제거됨");
   }
 
   const icon = document.createElement("div");
   icon.id = "casenote-search-icon";
+
+  const iconWidth = 32;
+  const iconHeight = 32;
+  const viewportWidth = window.innerWidth;
+
+  let finalX = x;
+  if (x + iconWidth > viewportWidth) {
+    finalX = x - iconWidth - 50; 
+  }
+  const finalY = y;
+
   icon.style.cssText = `
     position: absolute;
-    top: ${y + window.scrollY}px;
-    left: ${x + window.scrollX}px;
+    top: ${finalY + window.scrollY}px;
+    left: ${finalX + window.scrollX}px;
     z-index: 99999;
     cursor: pointer;
     background-color: white;
     border: 1px solid #ccc;
     border-radius: 10%;
-    width: 32px;
-    height: 32px;
+    width: ${iconWidth}px;
+    height: ${iconHeight}px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -29,7 +38,6 @@ const createSearchIcon = (x, y, selectedText) => {
   `;
   const img = document.createElement("img");
   img.src = chrome.runtime.getURL("images/icon48.png");
-  console.log(" - 이미지 경로:", img.src); // 이미지 경로가 올바른지 확인
   img.style.width = "30px";
   img.style.height = "30px";
   icon.appendChild(img);
@@ -46,7 +54,6 @@ const createSearchIcon = (x, y, selectedText) => {
 
   document.body.appendChild(icon);
   currentIcon = icon;
-  console.log("4. 아이콘이 body에 추가됨", icon);
 };
 
 const hideSearchIcon = (event) => {
@@ -57,21 +64,17 @@ const hideSearchIcon = (event) => {
   ) {
     currentIcon.remove();
     currentIcon = null;
-    console.log("hideSearchIcon: 아이콘 숨김 처리됨");
   }
 };
 
 document.addEventListener("mouseup", (event) => {
-  console.log("1. mouseup 이벤트 감지됨");
   setTimeout(() => {
     const selection = window.getSelection();
     const selectedText = selection.toString().trim();
     if (selectedText.length > 0 && selection.rangeCount > 0) {
-      console.log("2. 텍스트 선택 확인:", selectedText);
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-      console.log(" - 선택 영역 좌표:", rect);
-      createSearchIcon(rect.right - 32, rect.bottom + 5, selectedText);
+      createSearchIcon(rect.right, rect.bottom + 5, selectedText);
     }
   }, 1);
 });
