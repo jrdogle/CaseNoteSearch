@@ -1,5 +1,5 @@
 import {
-  SUPPORTED_ITEMS,
+  ALL_SUPPORTED_LAWS,
   DEFAULT_SETTINGS,
   CONST_COURT_REGEX,
   SUPREME_COURT_REGEX,
@@ -21,25 +21,49 @@ const updateContextMenus = () => {
       title: "판례 검색",
       contexts: ["selection"],
     });
+
     chrome.contextMenus.create({
-      id: "separator_manual",
+      id: "separator_laws",
       parentId: "casenoteParent",
       type: "separator",
       contexts: ["selection"],
     });
+
     chrome.storage.local.get({ settings: DEFAULT_SETTINGS }, (result) => {
       const settings = result.settings;
-      for (const id in SUPPORTED_ITEMS) {
-        if (settings[id]) {
-          const item = SUPPORTED_ITEMS[id];
-          chrome.contextMenus.create({
-            id: id,
-            parentId: "casenoteParent",
-            title: `${item.displayName} 조문 검색`,
-            contexts: ["selection"],
-          });
+      const enabledLaws = Object.keys(ALL_SUPPORTED_LAWS)
+                                .filter(id => settings[id])
+                                .map(id => ({ id, ...ALL_SUPPORTED_LAWS[id] }));
+
+      const categories = enabledLaws.reduce((acc, law) => {
+        (acc[law.category] = acc[law.category] || []).push(law);
+        return acc;
+      }, {});
+      
+      const categoryOrder = ["공법", "민사법", "형사법", "지적재산권법"];
+
+      categoryOrder.forEach(categoryName => {
+        if (categories[categoryName]) {
+            const categoryLaws = categories[categoryName];
+            
+            const categoryParentId = `category-${categoryName}`;
+            chrome.contextMenus.create({
+              id: categoryParentId,
+              parentId: "casenoteParent",
+              title: categoryName,
+              contexts: ["selection"],
+            });
+
+            categoryLaws.forEach(law => {
+              chrome.contextMenus.create({
+                id: law.id,
+                parentId: categoryParentId,
+                title: `${law.displayName} 조문 검색`,
+                contexts: ["selection"],
+              });
+            });
         }
-      }
+      });
     });
   });
 };
@@ -54,8 +78,8 @@ const handleIntelligentSearch = (selection) => {
   let displayText = "";
   let handled = false;
 
-  for (const id in SUPPORTED_ITEMS) {
-    const item = SUPPORTED_ITEMS[id];
+  for (const id in ALL_SUPPORTED_LAWS) {
+    const item = ALL_SUPPORTED_LAWS[id];
     if (selection.includes(item.displayName)) {
       const match = selection.match(LAW_ARTICLE_REGEX);
       if (match) {
@@ -147,8 +171,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 
   // 특정 법률 조문 검색 메뉴를 클릭한 경우
-  else if (SUPPORTED_ITEMS[menuItemId]) {
-    const item = SUPPORTED_ITEMS[menuItemId];
+  else if (ALL_SUPPORTED_LAWS[menuItemId]) {
+    const item = ALL_SUPPORTED_LAWS[menuItemId];
     const match = selection.match(LAW_ARTICLE_REGEX);
 
     if (match) {

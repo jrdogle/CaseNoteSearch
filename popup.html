@@ -11,74 +11,82 @@
         padding: 10px;
         color: #333;
       }
-      #main-title {
-        margin-top: 0;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        font-size: 18px;
-        text-align: center;
-        color: #444;
-      }
+      h2,
       h4 {
-        margin-top: 15px;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #e0e0e0;
-        padding-bottom: 5px;
-        font-size: 14px;
-        color: #555;
+        margin: 0;
       }
       ul {
         list-style: none;
         padding: 0;
         margin: 0;
       }
-      .setting-item {
+      button {
+        cursor: pointer;
+      }
+
+      #main-title {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        font-size: 18px;
+        text-align: center;
+        color: #444;
+      }
+
+      /* --- 헤더 (제목 + 관리 버튼) --- */
+      .section-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 8px 4px;
+        margin-top: 15px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .section-header h4 {
+        padding-bottom: 5px;
         font-size: 14px;
+        color: #555;
+        border-bottom: none;
       }
-      .switch {
-        position: relative;
+      .manage-btn {
+        border: none;
+        background-color: transparent;
+        color: #007aff;
+        font-size: 12px;
+        padding: 5px;
+      }
+      .manage-btn:hover {
+        text-decoration: underline;
+      }
+
+      /* --- 선택된 법률 목록 --- */
+      .law-category-group {
+        margin-bottom: 12px;
+      }
+      .law-category-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: #888;
+        padding: 4px 6px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
         display: inline-block;
-        width: 44px;
-        height: 24px;
+        margin-bottom: 8px;
       }
-      .switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
+      .selected-laws-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding-left: 4px;
       }
-      .slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: 0.4s;
-        border-radius: 24px;
+      .selected-laws-list li {
+        font-size: 14px; 
+        color: #333;
       }
-      .slider:before {
-        position: absolute;
-        content: "";
-        height: 18px;
-        width: 18px;
-        left: 3px;
-        bottom: 3px;
-        background-color: white;
-        transition: 0.4s;
-        border-radius: 50%;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      #settings-empty-msg { 
+        color: #888; text-align: center; padding: 15px 0; font-size: 13px; 
       }
-      input:checked + .slider {
-        background-color: #007aff;
-      }
-      input:checked + .slider:before {
-        transform: translateX(20px);
-      }
+
+      /* --- 히스토리 --- */
       #history-list li {
         display: flex;
         align-items: center;
@@ -141,20 +149,92 @@
       #clear-history-btn:hover {
         color: #d9534f;
       }
+
+      /* --- 모달(Modal) 창 스타일 --- */
+      .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(0, 0, 0, 0.5); z-index: 1000;
+        display: none; justify-content: center; align-items: center;
+      }
+      .modal-content {
+        background-color: white; padding: 20px; border-radius: 8px;
+        width: 320px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      }
+      .modal-content h3 {
+        margin-top: 0; text-align: center;
+      }
+      .modal-laws-list {
+        max-height: 250px; overflow-y: auto;
+        border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-bottom: 15px;
+      }
+      .modal-category-title {
+        font-size: 13px; font-weight: bold;
+        margin-top: 10px; margin-bottom: 5px;
+        padding-bottom: 3px; border-bottom: 1px solid #eee;
+      }
+      .modal-category-title:first-child {
+        margin-top: 0;
+      }
+      .modal-laws-list label {
+        display: block;
+        padding: 3px 5px;
+        cursor: pointer;
+        border-radius: 3px;
+      }
+      .modal-laws-list label:hover {
+        background-color: #f0f0f0;
+      }
+      .modal-laws-list input {
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+
+      .modal-actions {
+        text-align: right;
+      }
+      .modal-actions button {
+        padding: 8px 15px; border-radius: 4px; border: 1px solid #ccc;
+        margin-left: 8px; font-weight: 500;
+      }
+      #modal-save-btn {
+        background-color: #007aff; color: white; border-color: #007aff;
+      }
+      #modal-cancel-btn {
+        background-color: #f0f0f0;
+      }
     </style>
   </head>
   <body>
     <h2 id="main-title">🔎 CaseNote 검색기</h2>
 
-    <h4>법률 메뉴 설정</h4>
-    <div id="settings-container"></div>
+    <div class="section-header">
+      <h4>나의 법률 목록</h4>
+      <button id="manage-laws-btn" class="manage-btn">관리</button>
+    </div>
+    <div id="settings-container">
+      <ul id="selected-laws-list"></ul>
+      <p id="settings-empty-msg" style="display: none">
+        선택된 법률이 없습니다.<br />'관리'에서 추가해 주세요.
+      </p>
+    </div>
 
-    <div class="history-header">
+    <div class="section-header">
       <h4>최근 조회 기록</h4>
       <button id="clear-history-btn" title="전체 기록 삭제">전체 삭제</button>
     </div>
     <ul id="history-list"></ul>
     <p id="history-empty-msg" style="display: none">기록이 없습니다.</p>
+
+    <div id="law-modal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>법률 목록 관리</h3>
+        <div id="modal-laws-list" class="modal-laws-list"></div>
+        <div class="modal-actions">
+          <button id="modal-cancel-btn">취소</button>
+          <button id="modal-save-btn">저장</button>
+        </div>
+      </div>
+    </div>
 
     <script src="popup.js" type="module"></script>
   </body>
