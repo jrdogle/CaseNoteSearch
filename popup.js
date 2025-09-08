@@ -1,4 +1,4 @@
-import { ALL_SUPPORTED_LAWS, DEFAULT_SETTINGS } from "./constants.js";
+import { ALL_SUPPORTED_LAWS, DEFAULT_SETTINGS, CATEGORY_ORDER } from "./constants.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const selectedLawsContainer = document.getElementById("settings-container");
@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalSaveBtn = document.getElementById("modal-save-btn");
   const modalCancelBtn = document.getElementById("modal-cancel-btn");
   const clearHistoryBtn = document.getElementById("clear-history-btn");
-  const categoryOrder = ["공법", "민사법", "형사법", "지적재산권법"];
 
   manageLawsBtn.addEventListener("click", () => {
     chrome.storage.local.get({ settings: DEFAULT_SETTINGS }, (result) => {
@@ -56,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const lawsByCategory = groupLawsByCategory(ALL_SUPPORTED_LAWS);
 
-    categoryOrder.forEach((categoryName) => {
+    CATEGORY_ORDER.forEach((categoryName) => {
       if (lawsByCategory[categoryName]) {
         const categoryDiv = document.createElement("div");
         const categoryTitle = document.createElement("div");
@@ -98,7 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
       settingsEmptyMsg.style.display = "none";
       const lawsByCategory = groupLawsByCategory(enabledLaws);
 
-      categoryOrder.forEach((categoryName) => {
+      CATEGORY_ORDER.forEach((categoryName) => {
         if (lawsByCategory[categoryName]) {
           const groupDiv = document.createElement("div");
           groupDiv.className = "law-category-group";

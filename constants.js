@@ -30,6 +30,8 @@ export const DEFAULT_SETTINGS = {
   criminalLaw: true,
 };
 
+export const CATEGORY_ORDER = ["공법", "민사법", "형사법", "지적재산권법"];
+
 // 판례 및 조문 번호 식별을 위한 정규식 
 export const CONST_COURT_REGEX = /\d{2,4}헌[가-아]\d+/;
 export const SUPREME_COURT_REGEX = /\d{2,4}(다|도|두)\d+/;

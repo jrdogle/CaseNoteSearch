@@ -5,6 +5,7 @@ import {
   SUPREME_COURT_REGEX,
   PATENT_COURT_REGEX,
   LAW_ARTICLE_REGEX,
+  CATEGORY_ORDER,
 } from "./constants.js";
 
 const updateContextMenus = () => {
@@ -39,10 +40,8 @@ const updateContextMenus = () => {
         (acc[law.category] = acc[law.category] || []).push(law);
         return acc;
       }, {});
-      
-      const categoryOrder = ["공법", "민사법", "형사법", "지적재산권법"];
 
-      categoryOrder.forEach(categoryName => {
+      CATEGORY_ORDER.forEach(categoryName => {
         if (categories[categoryName]) {
             const categoryLaws = categories[categoryName];
             
@@ -93,22 +92,10 @@ const handleIntelligentSearch = (selection) => {
   }
 
   if (!handled) {
-    let match =
-      selection.match(CONST_COURT_REGEX) ||
-      selection.match(SUPREME_COURT_REGEX)||
-      selection.match(PATENT_COURT_REGEX);
-    if (match) {
-      const caseNumber = match[0];
-      let courtUrlName = "대법원";
-      if (selection.match(CONST_COURT_REGEX)) {
-        courtUrlName = "헌법재판소";
-      } else if (selection.match(PATENT_COURT_REGEX)) {
-        courtUrlName = "특허법원";
-      }
-      finalURL = `https://casenote.kr/${courtUrlName}/${encodeURIComponent(
-        caseNumber
-      )}`;
-      displayText = `${courtUrlName} ${caseNumber}`;
+    const precedent = parsePrecedent(selection);
+    if (precedent) {
+      finalURL = `https://casenote.kr/${precedent.courtUrlName}/${encodeURIComponent(precedent.caseNumber)}`;
+      displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
       handled = true;
     }
   }
@@ -135,37 +122,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
   // "판례 검색" 메뉴를 클릭한 경우
   if (menuItemId === "PrecedentSearch") {
-    let courtUrlName = "";
-    let courtDisplayName = "";
-    let caseNumber = "";
-    let match = 
-      selection.match(CONST_COURT_REGEX) || 
-      selection.match(SUPREME_COURT_REGEX) || 
-      selection.match(PATENT_COURT_REGEX);
-
-    if (match) {
-      caseNumber = match[0];
-      if (selection.match(CONST_COURT_REGEX)) {
-        courtUrlName = "헌법재판소";
-        courtDisplayName = "헌법재판소";
-      } else if (selection.match(PATENT_COURT_REGEX)) {
-        courtUrlName = "특허법원";
-        courtDisplayName = "특허법원";
-      } else {
-        courtUrlName = "대법원";
-        courtDisplayName = "대법원";
-      }
-    }
-    
-    if (caseNumber) {
-      finalURL = `https://casenote.kr/${courtUrlName}/${encodeURIComponent(
-        caseNumber
-      )}`;
-      displayText = `${courtDisplayName} ${caseNumber}`;
+    const precedent = parsePrecedent(selection);
+    if (precedent) {
+      finalURL = `https://casenote.kr/${precedent.courtUrlName}/${encodeURIComponent(precedent.caseNumber)}`;
+      displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
     } else {
-      finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(
-        selection
-      )}`;
+      finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(selection)}`;
       displayText = selection;
     }
   }
@@ -276,4 +238,31 @@ const saveToHistory = (historyItem) => {
     history.unshift(historyItem);
     chrome.storage.local.set({ history: history });
   });
+};
+
+/**
+ * 선택된 텍스트에서 판례 정보를 파싱하는 헬퍼 함수
+ * @param {string} selection - 사용자가 선택한 텍스트
+ * @returns {object|null} - 파싱 성공 시 판례 정보 객체, 실패 시 null
+ */
+const parsePrecedent = (selection) => {
+  const match = 
+    selection.match(CONST_COURT_REGEX) || 
+    selection.match(SUPREME_COURT_REGEX) || 
+    selection.match(PATENT_COURT_REGEX);
+
+  if (!match) {
+    return null;
+  }
+
+  const caseNumber = match[0];
+  let courtInfo = { courtUrlName: "대법원", courtDisplayName: "대법원" }; // 기본값
+
+  if (selection.match(CONST_COURT_REGEX)) {
+    courtInfo = { courtUrlName: "헌법재판소", courtDisplayName: "헌법재판소" };
+  } else if (selection.match(PATENT_COURT_REGEX)) {
+    courtInfo = { courtUrlName: "특허법원", courtDisplayName: "특허법원" };
+  }
+
+  return { ...courtInfo, caseNumber };
 };
