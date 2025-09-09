@@ -8,6 +8,9 @@ import {
   CATEGORY_ORDER,
 } from "./constants.js";
 
+let popupWindowId = null;
+let debounceTimer = null;
+
 const updateContextMenus = () => {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
@@ -92,6 +95,29 @@ const updateContextMenus = () => {
 // 확장 프로그램 설치 및 시작 시 메뉴 생성
 chrome.runtime.onInstalled.addListener(updateContextMenus);
 chrome.runtime.onStartup.addListener(updateContextMenus);
+
+// 팝업 윈도우가 닫힐 때 ID 초기화
+chrome.windows.onRemoved.addListener((windowId) => {
+  if (windowId === popupWindowId) {
+    popupWindowId = null;
+  }
+});
+
+// 팝업 윈도우의 크기/위치 변경 시 저장 (디바운싱 적용)
+chrome.windows.onBoundsChanged.addListener((window) => {
+  if (window.id === popupWindowId && window.state !== 'minimized') {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      const bounds = {
+        left: window.left,
+        top: window.top,
+        width: window.width,
+        height: window.height,
+      };
+      chrome.storage.local.set({ windowBounds: bounds });
+    }, 500);
+  }
+});
 
 // 지능형 검색 로직
 const handleIntelligentSearch = async (selection) => {
@@ -227,22 +253,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Helper Functions
 const createPopupWindow = (url) => {
   if (!url) return;
-  chrome.system.display.getInfo((displays) => {
-    const primaryDisplay = displays.find((d) => d.isPrimary) || displays[0];
-    const screenWidth = primaryDisplay.workArea.width;
-    const screenHeight = primaryDisplay.workArea.height;
-    const popupWidth = Math.round(screenWidth / 3);
-    const popupHeight = screenHeight;
-    const popupLeft = Math.round((screenWidth * 2) / 3);
-    const popupTop = 0;
 
-    chrome.windows.create({
-      url: url,
-      type: "popup",
-      width: popupWidth,
-      height: popupHeight,
-      left: Math.max(0, popupLeft),
-      top: Math.max(0, popupTop),
+  chrome.storage.local.get({ windowBounds: null }, (result) => {
+    const lastBounds = result.windowBounds;
+
+    chrome.system.display.getInfo((displays) => {
+      const primaryDisplay = displays.find((d) => d.isPrimary) || displays[0];
+      const screenWidth = primaryDisplay.workArea.width;
+      const screenHeight = primaryDisplay.workArea.height;
+
+      const creationData = {
+        url: url,
+        type: "popup",
+        width: lastBounds?.width || Math.round(screenWidth / 3),
+        height: lastBounds?.height || screenHeight,
+        left: lastBounds?.left || Math.round((screenWidth * 2) / 3),
+        top: lastBounds?.top || 0,
+      };
+
+      // 창이 화면 밖에서 생성되는 것을 방지
+      if (lastBounds) {
+        creationData.left = Math.max(0, Math.min(lastBounds.left, screenWidth - lastBounds.width));
+        creationData.top = Math.max(0, Math.min(lastBounds.top, screenHeight - lastBounds.height));
+      }
+
+      chrome.windows.create(creationData, (newWindow) => {
+        if (newWindow) {
+          popupWindowId = newWindow.id;
+        }
+      });
     });
   });
 };
