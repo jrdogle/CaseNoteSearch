@@ -8,6 +8,30 @@ import {
   CATEGORY_ORDER,
 } from "./constants.js";
 
+// 존재하지 않는 판례 검색 시 404 페이지 대신 일반 검색으로 fallback하기 위한 맵
+const precedentCheckMap = {};
+
+// 탭 상태 변경을 감지하여 404 페이지를 확인하는 리스너
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  const checkInfo = precedentCheckMap[tabId];
+  // 해당 탭을 모니터링 중이고, 로딩이 완료되었으며, URL과 제목이 있는지 확인
+  if (checkInfo && changeInfo.status === 'complete' && tab.url && tab.url.startsWith("https://casenote.kr/")) {
+    // CaseNote 404 페이지의 제목으로 404 여부 판단
+    if (tab.title.includes("에러(404)")) {
+      const fallbackQuery = checkInfo.query;
+      const fallbackURL = `https://casenote.kr/search/?q=${encodeURIComponent(fallbackQuery)}`;
+      
+      chrome.tabs.update(tabId, { url: fallbackURL });
+      saveToHistory({ url: fallbackURL, displayText: fallbackQuery });
+    } else {
+      // 404가 아니면 정상적인 판례이므로, 원래 계획된 히스토리를 저장
+      saveToHistory(checkInfo.historyItem);
+    }
+    // 확인이 끝났으므로 맵에서 제거
+    delete precedentCheckMap[tabId];
+  }
+});
+
 const updateContextMenus = () => {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
@@ -96,10 +120,7 @@ chrome.runtime.onStartup.addListener(updateContextMenus);
 
 // 지능형 검색 로직
 const handleIntelligentSearch = (selection) => {
-  let finalURL = "";
-  let displayText = "";
-  let handled = false;
-
+  // 1. 법률 조문 형식인지 확인
   for (const id in ALL_SUPPORTED_LAWS) {
     const item = ALL_SUPPORTED_LAWS[id];
     if (selection.includes(item.displayName)) {
@@ -109,88 +130,97 @@ const handleIntelligentSearch = (selection) => {
         if (!articleTextForUrl.startsWith("제")) {
           articleTextForUrl = "제" + articleTextForUrl;
         }
-        finalURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
-        displayText = selection;
-        handled = true;
-        break;
+        const finalURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
+        const displayText = selection;
+        createPopupWindow(finalURL);
+        saveToHistory({ url: finalURL, displayText: displayText });
+        return; // 처리 완료
       }
     }
   }
 
-  if (!handled) {
-    const precedent = parsePrecedent(selection);
-    if (precedent) {
-      finalURL = `https://casenote.kr/${precedent.courtUrlName}/${encodeURIComponent(precedent.caseNumber)}`;
-      displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
-      handled = true;
-    }
+  // 2. 판례 번호 형식인지 확인
+  const precedent = parsePrecedent(selection);
+  if (precedent) {
+    const finalURL = `https://casenote.kr/${precedent.courtUrlName}/${encodeURIComponent(precedent.caseNumber)}`;
+    const displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
+    // 404 확인을 위해 히스토리 저장을 보류하고, 관련 정보를 전달
+    createPopupWindow(finalURL, { 
+      isPrecedent: true,
+      query: selection, 
+      historyItem: { url: finalURL, displayText: displayText } 
+    });
+    return; // 처리 완료
   }
 
-  if (!handled) {
-    finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(selection)}`;
-    displayText = selection;
-  }
-
-  if (finalURL) {
-    createPopupWindow(finalURL);
-    saveToHistory({ url: finalURL, displayText: displayText });
-  }
+  // 3. 위 형식에 해당하지 않으면 일반 검색 실행
+  const finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(selection)}`;
+  const displayText = selection;
+  createPopupWindow(finalURL);
+  saveToHistory({ url: finalURL, displayText: displayText });
 };
 
 // 메뉴 클릭 이벤트 리스너
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   const selection = info.selectionText.trim();
   if (!selection) return;
-
   const menuItemId = info.menuItemId;
-  let finalURL = "";
-  let displayText = "";
 
   // "판례 검색" 메뉴를 클릭한 경우
   if (menuItemId === "PrecedentSearch") {
     const precedent = parsePrecedent(selection);
     if (precedent) {
-      finalURL = `https://casenote.kr/${precedent.courtUrlName}/${encodeURIComponent(precedent.caseNumber)}`;
-      displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
+      const finalURL = `https://casenote.kr/${precedent.courtUrlName}/${encodeURIComponent(precedent.caseNumber)}`;
+      const displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
+      createPopupWindow(finalURL, { 
+        isPrecedent: true,
+        query: selection, 
+        historyItem: { url: finalURL, displayText: displayText } 
+      });
     } else {
-      finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(selection)}`;
-      displayText = selection;
+      const finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(selection)}`;
+      const displayText = selection;
+      createPopupWindow(finalURL);
+      saveToHistory({ url: finalURL, displayText: displayText });
     }
+    return;
   }
-
+  
   // 즐겨찾기 메뉴 또는 일반 법률 메뉴 클릭
-  else {
-    const lawId = menuItemId.startsWith("favorite_") ? menuItemId.replace("favorite_", "") : menuItemId;
-    
-    if (ALL_SUPPORTED_LAWS[lawId]) {
-      const item = ALL_SUPPORTED_LAWS[lawId];
-      const match = selection.match(LAW_ARTICLE_REGEX);
+  const lawId = menuItemId.startsWith("favorite_") ? menuItemId.replace("favorite_", "") : menuItemId;
+  if (ALL_SUPPORTED_LAWS[lawId]) {
+    const item = ALL_SUPPORTED_LAWS[lawId];
+    const match = selection.match(LAW_ARTICLE_REGEX);
+    let finalURL = "";
+    let displayText = "";
 
-      if (match) {
-        let articleTextForUrl = match[0].replace(/\s/g, "");
-        if (!articleTextForUrl.startsWith("제")) {
-          articleTextForUrl = "제" + articleTextForUrl;
-        }
-        finalURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
-        displayText = `${item.displayName} ${match[0]}`;
-      } else {
-        const searchQuery = `${item.displayName} ${selection}`;
-        finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(
-          searchQuery
-        )}`;
-        displayText = searchQuery;
+    if (match) {
+      let articleTextForUrl = match[0].replace(/\s/g, "");
+      if (!articleTextForUrl.startsWith("제")) {
+        articleTextForUrl = "제" + articleTextForUrl;
       }
+      finalURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
+      displayText = `${item.displayName} ${match[0]}`;
+    } else {
+      const searchQuery = `${item.displayName} ${selection}`;
+      finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(searchQuery)}`;
+      displayText = searchQuery;
     }
-  }
-
-  if (finalURL) {
-    createPopupWindow(finalURL);
-    saveToHistory({ url: finalURL, displayText: displayText });
+    
+    if (finalURL) {
+      createPopupWindow(finalURL);
+      saveToHistory({ url: finalURL, displayText: displayText });
+    }
   }
 });
 
 // 팝업 및 content.js로부터 메시지를 받는 리스너
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // 서비스 워커를 깨우기 위한 용도이며, 별도의 작업은 필요 없습니다.
+  if (request.action === "ping") {
+    return;
+  }
+
   // 0. content.js의 아이콘 클릭으로부터 지능형 검색 요청
   if (request.action === "intelligentSearchFromIcon") {
     if (request.selection) {
@@ -211,7 +241,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Re-add the item to the top of the history
     saveToHistory(request.item);
   }
-  // 3. 팝업에서 메뉴 설정 변경 요청
+  // 2. 팝업에서 메뉴 설정 변경 요청
   else if (request.action === "updateContextMenus") {
     updateContextMenus();
   }
@@ -242,7 +272,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Helper Functions
-const createPopupWindow = (url) => {
+const createPopupWindow = (url, checkInfo = null) => {
   if (!url) return;
   chrome.system.display.getInfo((displays) => {
     const primaryDisplay = displays.find((d) => d.isPrimary) || displays[0];
@@ -252,13 +282,25 @@ const createPopupWindow = (url) => {
     const popupHeight = screenHeight;
     const popupLeft = Math.round((screenWidth * 2) / 3);
     const popupTop = 0;
+
+    // 1. 로딩 페이지를 먼저 띄워 즉각적인 반응을 보여줍니다.
     chrome.windows.create({
-      url: url,
+      url: chrome.runtime.getURL("loader.html"),
       type: "popup",
       width: popupWidth,
       height: popupHeight,
       left: Math.max(0, popupLeft),
       top: Math.max(0, popupTop),
+    }, (newWindow) => {
+      // 2. 새 창이 생성된 후, 실제 목표 URL로 이동시킵니다.
+      if (newWindow && newWindow.tabs && newWindow.tabs.length > 0) {
+        const tabId = newWindow.tabs[0].id;
+        // V1.1.6: 404 확인이 필요한 경우, 탭 ID와 관련 정보를 맵에 저장
+        if (checkInfo && checkInfo.isPrecedent) {
+          precedentCheckMap[tabId] = checkInfo;
+        }
+        chrome.tabs.update(tabId, { url: url });
+      }
     });
   });
 };

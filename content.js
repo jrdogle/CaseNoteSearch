@@ -61,7 +61,16 @@ document.addEventListener("mouseup", (event) => {
   }, 1);
 });
 
-document.addEventListener("mousedown", hideSearchIcon);
+document.addEventListener("mousedown", (event) => {
+  hideSearchIcon(event);
+  // V1.1.5 개선: 서비스 워커(백그라운드 스크립트)가 잠들어 있을 때 발생하는 지연을 줄이기 위해
+  // 사용자가 검색을 시작할 가능성이 있는 mousedown 시점에 미리 'ping'을 보내 깨워줍니다.
+  try {
+    chrome.runtime.sendMessage({ action: "ping" });
+  } catch (e) {
+    // 팝업이 열려있는 등, 메시지를 받을 대상이 없는 경우 오류가 발생할 수 있으나 무시해도 괜찮습니다.
+  }
+});
 document.addEventListener("scroll", hideSearchIcon);
 
 // 페이지 로딩이 완료된 후 100ms 정도 후에 실행
