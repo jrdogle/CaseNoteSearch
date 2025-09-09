@@ -237,17 +237,12 @@ const createPopupWindow = (url) => {
     const popupTop = 0;
 
     chrome.windows.create({
-      url: chrome.runtime.getURL("loader.html"),
+      url: url,
       type: "popup",
       width: popupWidth,
       height: popupHeight,
       left: Math.max(0, popupLeft),
       top: Math.max(0, popupTop),
-    }, (newWindow) => {
-      if (newWindow && newWindow.tabs && newWindow.tabs.length > 0) {
-        const tabId = newWindow.tabs[0].id;
-        chrome.tabs.update(tabId, { url: url });
-      }
     });
   });
 };
