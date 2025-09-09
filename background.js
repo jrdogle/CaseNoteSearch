@@ -105,7 +105,10 @@ const handleIntelligentSearch = (selection) => {
     if (selection.includes(item.displayName)) {
       const match = selection.match(LAW_ARTICLE_REGEX);
       if (match) {
-        const articleTextForUrl = match[0].replace(/\s/g, "");
+        let articleTextForUrl = match[0].replace(/\s/g, "");
+        if (!articleTextForUrl.startsWith("제")) {
+          articleTextForUrl = "제" + articleTextForUrl;
+        }
         finalURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
         displayText = selection;
         handled = true;
@@ -164,7 +167,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       const match = selection.match(LAW_ARTICLE_REGEX);
 
       if (match) {
-        const articleTextForUrl = match[0].replace(/\s/g, "");
+        let articleTextForUrl = match[0].replace(/\s/g, "");
+        if (!articleTextForUrl.startsWith("제")) {
+          articleTextForUrl = "제" + articleTextForUrl;
+        }
         finalURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
         displayText = `${item.displayName} ${match[0]}`;
       } else {
