@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   quickSearchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter") {
       e.preventDefault();
       quickSearchBtn.click();
     }
@@ -79,7 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   modalSearchInput.addEventListener("input", (e) => {
     const searchTerm = e.target.value;
-    // storage를 다시 읽는 대신, 캐싱된 설정 값을 사용합니다.
     renderModalLaws(currentModalSettings, tempFavoriteLaws, searchTerm);
   });
 
@@ -89,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modalLawsListEl.innerHTML = "";
     
     const filteredLaws = Object.keys(ALL_SUPPORTED_LAWS)
-      .map(id => ({ id, ...ALL_SUPPORTED_LAWS[id] })) // 각 법률 객체에 id 속성 추가
+      .map(id => ({ id, ...ALL_SUPPORTED_LAWS[id] }))
       .filter(law => 
         law.displayName.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -214,10 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const groupLawsByCategory = (laws) => {
-    const lawMap = Array.isArray(laws)
-      ? laws
-      : Object.keys(laws).map((id) => ({ id, ...laws[id] }));
-    return lawMap.reduce((acc, law) => {
+    return laws.reduce((acc, law) => {
       (acc[law.category] = acc[law.category] || []).push(law);
       return acc;
     }, {});
@@ -254,10 +250,9 @@ document.addEventListener("DOMContentLoaded", () => {
         textSpan.addEventListener("click", () => openHistoryItem(item));
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "history-delete-btn";
-        deleteBtn.innerHTML = "&times;"; // The 'x' symbol
+        deleteBtn.innerHTML = "&times;";
         deleteBtn.title = "기록 삭제";
-        deleteBtn.dataset.index = index; // 삭제할 인덱스를 data 속성으로 저장
-        // 개별 이벤트 리스너는 제거합니다.
+        deleteBtn.dataset.index = index;
         li.appendChild(textSpan);
         li.appendChild(deleteBtn);
         historyListEl.appendChild(li);
