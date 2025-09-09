@@ -28,7 +28,7 @@ chrome.webNavigation.onCompleted.addListener((details) => {
       
       console.log(`[CaseNote 검색기] webNavigation.onCompleted: tabId ${tabId}. 페이지 제목: "${tab.title}"`);
 
-      if (tab.title.includes("에러") || tab.title.includes("404")) {
+      if (!tab.title || (tab.title.includes("에러") || tab.title.includes("404"))) {
         console.log(`[CaseNote 검색기] 404 페이지로 판단. 일반 검색으로 전환합니다.`);
         const fallbackQuery = checkInfo.query;
         const fallbackURL = `https://casenote.kr/search/?q=${encodeURIComponent(fallbackQuery)}`;
