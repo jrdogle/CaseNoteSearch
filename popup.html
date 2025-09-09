@@ -58,6 +58,30 @@
         text-decoration: underline;
       }
 
+      /* --- 텍스트로 바로 검색 --- */
+      #quick-search-container {
+        display: flex;
+        margin-bottom: 15px;
+      }
+      #quick-search-input {
+        flex-grow: 1;
+        padding: 6px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        resize: vertical;
+        font-family: inherit;
+        font-size: 13px;
+      }
+      #quick-search-btn {
+        margin-left: 8px;
+        padding: 0 15px;
+        border: 1px solid #007aff;
+        background-color: #007aff;
+        color: white;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+
       /* --- 선택된 법률 목록 --- */
       .law-category-group {
         margin-bottom: 12px;
@@ -255,6 +279,14 @@
   </head>
   <body>
     <h2 id="main-title">🔎 CaseNote 검색기</h2>
+
+    <div class="section-header" style="margin-top: 0;">
+      <h4>빠른 검색</h4>
+    </div>
+    <div id="quick-search-container">
+      <input type="text" id="quick-search-input" placeholder="판례 번호 또는 법률 조문 입력" />
+      <button id="quick-search-btn">검색</button>
+    </div>
 
     <div class="section-header">
       <h4>⭐ 즐겨찾는 법률</h4>

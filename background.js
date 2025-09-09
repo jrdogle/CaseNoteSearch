@@ -198,17 +198,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     return; // 메시지 처리 후 종료
   }
-  // 1. 팝업에서 히스토리 열기 요청
+  // 1. 팝업에서 텍스트로 지능형 검색 요청
+  else if (request.action === "intelligentSearchFromPopup") {
+    if (request.text) {
+      handleIntelligentSearch(request.text);
+    }
+    return;
+  }
+  // 2. 팝업에서 히스토리 열기 요청
   else if (request.action === "openFromHistory") {
     createPopupWindow(request.item.url);
     // Re-add the item to the top of the history
     saveToHistory(request.item);
   }
-  // 2. 팝업에서 메뉴 설정 변경 요청
+  // 3. 팝업에서 메뉴 설정 변경 요청
   else if (request.action === "updateContextMenus") {
     updateContextMenus();
   }
-  // 3. content.js에서 히스토리 제목 업데이트 요청
+  // 4. content.js에서 히스토리 제목 업데이트 요청
   else if (
     request.action === "updateHistoryTitle" &&
     request.url &&

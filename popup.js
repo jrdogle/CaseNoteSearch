@@ -1,6 +1,9 @@
 import { ALL_SUPPORTED_LAWS, DEFAULT_SETTINGS, CATEGORY_ORDER, MAX_FAVORITES } from "./constants.js";
 
 document.addEventListener("DOMContentLoaded", () => {
+  const quickSearchInput = document.getElementById("quick-search-input");
+  const quickSearchBtn = document.getElementById("quick-search-btn");
+
   const selectedLawsContainer = document.getElementById("settings-container");
   const settingsEmptyMsg = document.getElementById("settings-empty-msg");
   const favoriteLawsList = document.getElementById("favorite-laws-list");
@@ -20,6 +23,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let tempFavoriteLaws = [];
   let currentModalSettings = {};
+
+  quickSearchBtn.addEventListener("click", () => {
+    const searchText = quickSearchInput.value.trim();
+    if (searchText) {
+      chrome.runtime.sendMessage({ action: "intelligentSearchFromPopup", text: searchText });
+      window.close();
+    }
+  });
+
+  quickSearchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      quickSearchBtn.click();
+    }
+  });
 
   manageLawsBtn.addEventListener("click", () => {
     chrome.storage.local.get(DEFAULT_SETTINGS, (result) => {
@@ -79,7 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
     CATEGORY_ORDER.forEach((categoryName) => {
       if (lawsByCategory[categoryName]) {
         const categoryDiv = document.createElement("div");
-        categoryDiv.classList.add("modal-category-container"); // 필터링 시 빈 카테고리를 숨기기 위한 클래스
+        categoryDiv.classList.add("modal-category-container");
         const categoryTitle = document.createElement("div");
         categoryTitle.className = "modal-category-title";
         categoryTitle.textContent = categoryName;
