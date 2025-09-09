@@ -28,7 +28,7 @@ chrome.webNavigation.onCompleted.addListener((details) => {
       
       console.log(`[CaseNote 검색기] webNavigation.onCompleted: tabId ${tabId}. 페이지 제목: "${tab.title}"`);
 
-      if (!tab.title || (tab.title.includes("에러") || tab.title.includes("404"))) {
+      if (!tab.title || tab.title.includes("에러") || tab.title.includes("404")) {
         console.log(`[CaseNote 검색기] 404 페이지로 판단. 일반 검색으로 전환합니다.`);
         const fallbackQuery = checkInfo.query;
         const fallbackURL = `https://casenote.kr/search/?q=${encodeURIComponent(fallbackQuery)}`;
@@ -145,8 +145,11 @@ const handleIntelligentSearch = (selection) => {
         }
         const finalURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
         const displayText = selection;
-        createPopupWindow(finalURL);
-        saveToHistory({ url: finalURL, displayText: displayText });
+        createPopupWindow(finalURL, {
+          needs404Check: true,
+          query: selection,
+          historyItem: { url: finalURL, displayText: displayText },
+        });
         return; // 처리 완료
       }
     }
@@ -159,7 +162,7 @@ const handleIntelligentSearch = (selection) => {
     const displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
     // 404 확인을 위해 히스토리 저장을 보류하고, 관련 정보를 전달
     createPopupWindow(finalURL, { 
-      isPrecedent: true,
+      needs404Check: true,
       query: selection, 
       historyItem: { url: finalURL, displayText: displayText } 
     });
@@ -186,7 +189,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       const finalURL = `https://casenote.kr/${precedent.courtUrlName}/${encodeURIComponent(precedent.caseNumber)}`;
       const displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
       createPopupWindow(finalURL, { 
-        isPrecedent: true,
+        needs404Check: true,
         query: selection, 
         historyItem: { url: finalURL, displayText: displayText } 
       });
@@ -309,7 +312,7 @@ const createPopupWindow = (url, checkInfo = null) => {
       if (newWindow && newWindow.tabs && newWindow.tabs.length > 0) {
         const tabId = newWindow.tabs[0].id;
         // V1.1.6: 404 확인이 필요한 경우, 탭 ID와 관련 정보를 맵에 저장
-        if (checkInfo && checkInfo.isPrecedent) {
+        if (checkInfo && checkInfo.needs404Check) {
           console.log(`[CaseNote 검색기] 404 확인을 위해 tabId ${tabId}를 모니터링합니다.`, checkInfo);
           precedentCheckMap[tabId] = checkInfo;
         }
