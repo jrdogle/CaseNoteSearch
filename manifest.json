@@ -6,7 +6,8 @@
   "permissions": [
     "contextMenus",
     "system.display",
-    "storage"
+    "storage",
+    "webNavigation"
   ],
   "background": {
     "service_worker": "background.js",

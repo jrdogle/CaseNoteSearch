@@ -11,26 +11,39 @@ import {
 // 존재하지 않는 판례 검색 시 404 페이지 대신 일반 검색으로 fallback하기 위한 맵
 const precedentCheckMap = {};
 
-// 탭 상태 변경을 감지하여 404 페이지를 확인하는 리스너
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  const checkInfo = precedentCheckMap[tabId];
-  // 해당 탭을 모니터링 중이고, 로딩이 완료되었으며, URL과 제목이 있는지 확인
-  if (checkInfo && changeInfo.status === 'complete' && tab.url && tab.url.startsWith("https://casenote.kr/")) {
-    // CaseNote 404 페이지의 제목으로 404 여부 판단
-    if (tab.title.includes("에러(404)")) {
-      const fallbackQuery = checkInfo.query;
-      const fallbackURL = `https://casenote.kr/search/?q=${encodeURIComponent(fallbackQuery)}`;
-      
-      chrome.tabs.update(tabId, { url: fallbackURL });
-      saveToHistory({ url: fallbackURL, displayText: fallbackQuery });
-    } else {
-      // 404가 아니면 정상적인 판례이므로, 원래 계획된 히스토리를 저장
-      saveToHistory(checkInfo.historyItem);
-    }
-    // 확인이 끝났으므로 맵에서 제거
-    delete precedentCheckMap[tabId];
+chrome.webNavigation.onCompleted.addListener((details) => {
+  if (details.frameId !== 0) {
+    return;
   }
-});
+
+  const tabId = details.tabId;
+  const checkInfo = precedentCheckMap[tabId];
+
+  if (checkInfo) {
+    chrome.tabs.get(tabId, (tab) => {
+      if (chrome.runtime.lastError || !tab) {
+        delete precedentCheckMap[tabId];
+        return;
+      }
+      
+      console.log(`[CaseNote 검색기] webNavigation.onCompleted: tabId ${tabId}. 페이지 제목: "${tab.title}"`);
+
+      if (tab.title.includes("에러") || tab.title.includes("404")) {
+        console.log(`[CaseNote 검색기] 404 페이지로 판단. 일반 검색으로 전환합니다.`);
+        const fallbackQuery = checkInfo.query;
+        const fallbackURL = `https://casenote.kr/search/?q=${encodeURIComponent(fallbackQuery)}`;
+        
+        chrome.tabs.update(tabId, { url: fallbackURL });
+        saveToHistory({ url: fallbackURL, displayText: fallbackQuery });
+      } else {
+        console.log(`[CaseNote 검색기] 정상 페이지로 판단. 히스토리를 저장합니다.`);
+        saveToHistory(checkInfo.historyItem);
+      }
+      console.log(`[CaseNote 검색기] tabId ${tabId} 모니터링을 종료합니다.`);
+      delete precedentCheckMap[tabId];
+    });
+  }
+}, {url: [{hostContains: "casenote.kr"}]}); // casenote.kr 도메인에 대해서만 이벤트 수신
 
 const updateContextMenus = () => {
   chrome.contextMenus.removeAll(() => {
@@ -297,6 +310,7 @@ const createPopupWindow = (url, checkInfo = null) => {
         const tabId = newWindow.tabs[0].id;
         // V1.1.6: 404 확인이 필요한 경우, 탭 ID와 관련 정보를 맵에 저장
         if (checkInfo && checkInfo.isPrecedent) {
+          console.log(`[CaseNote 검색기] 404 확인을 위해 tabId ${tabId}를 모니터링합니다.`, checkInfo);
           precedentCheckMap[tabId] = checkInfo;
         }
         chrome.tabs.update(tabId, { url: url });
