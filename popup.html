@@ -82,7 +82,7 @@
         font-size: 14px;
         color: #333;
       }
-      #settings-empty-msg {
+      #settings-empty-msg, #favorites-empty-msg {
         color: #888;
         text-align: center;
         padding: 15px 0;
@@ -197,7 +197,8 @@
         margin-top: 0;
       }
       .modal-laws-list label {
-        display: block;
+        display: flex;
+        align-items: center;
         padding: 3px 5px;
         cursor: pointer;
         border-radius: 3px;
@@ -208,6 +209,18 @@
       .modal-laws-list input {
         margin-right: 10px;
         vertical-align: middle;
+      }
+      .law-name {
+        flex-grow: 1;
+      }
+      .favorite-star {
+        cursor: pointer;
+        font-size: 18px;
+        color: #ccc;
+        margin-left: 10px;
+      }
+      .favorite-star.favorited {
+        color: #ffc107;
       }
       .modal-actions {
         display: flex;
@@ -239,6 +252,16 @@
   </head>
   <body>
     <h2 id="main-title">🔎 CaseNote 검색기</h2>
+
+    <div class="section-header">
+      <h4>⭐ 즐겨찾는 법률</h4>
+    </div>
+    <div id="favorites-container">
+      <ul id="favorite-laws-list" class="selected-laws-list"></ul>
+      <p id="favorites-empty-msg" style="display: none">
+        '관리'에서 별을 눌러<br />최대 3개까지 추가할 수 있습니다.
+      </p>
+    </div>
 
     <div class="section-header">
       <h4>나의 법률 목록</h4>

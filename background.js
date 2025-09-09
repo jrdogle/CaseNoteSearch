@@ -23,15 +23,38 @@ const updateContextMenus = () => {
       contexts: ["selection"],
     });
 
-    chrome.contextMenus.create({
-      id: "separator_laws",
-      parentId: "casenoteParent",
-      type: "separator",
-      contexts: ["selection"],
-    });
+    chrome.storage.local.get(DEFAULT_SETTINGS, (result) => {
+      const { settings, favoriteLaws } = result;
+      
+      // 즐겨찾기 메뉴 추가
+      if (favoriteLaws && favoriteLaws.length > 0) {
+        chrome.contextMenus.create({
+          id: "separator_favorites",
+          parentId: "casenoteParent",
+          type: "separator",
+          contexts: ["selection"],
+        });
 
-    chrome.storage.local.get({ settings: DEFAULT_SETTINGS }, (result) => {
-      const settings = result.settings;
+        favoriteLaws.forEach(lawId => {
+          const law = ALL_SUPPORTED_LAWS[lawId];
+          if (law) {
+            chrome.contextMenus.create({
+              id: `favorite_${lawId}`,
+              parentId: "casenoteParent",
+              title: `${law.displayName} 조문 검색`,
+              contexts: ["selection"],
+            });
+          }
+        });
+      }
+
+      chrome.contextMenus.create({
+        id: "separator_laws",
+        parentId: "casenoteParent",
+        type: "separator",
+        contexts: ["selection"],
+      });
+
       const enabledLaws = Object.keys(ALL_SUPPORTED_LAWS)
                                 .filter(id => settings[id])
                                 .map(id => ({ id, ...ALL_SUPPORTED_LAWS[id] }));
@@ -67,7 +90,7 @@ const updateContextMenus = () => {
   });
 };
 
-// 확장 프로그램 설치 및 시작 시 메뉴 생성 (이전과 동일)
+// 확장 프로그램 설치 및 시작 시 메뉴 생성
 chrome.runtime.onInstalled.addListener(updateContextMenus);
 chrome.runtime.onStartup.addListener(updateContextMenus);
 
@@ -132,21 +155,25 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     }
   }
 
-  // 특정 법률 조문 검색 메뉴를 클릭한 경우
-  else if (ALL_SUPPORTED_LAWS[menuItemId]) {
-    const item = ALL_SUPPORTED_LAWS[menuItemId];
-    const match = selection.match(LAW_ARTICLE_REGEX);
+  // 즐겨찾기 메뉴 또는 일반 법률 메뉴 클릭
+  else {
+    const lawId = menuItemId.startsWith("favorite_") ? menuItemId.replace("favorite_", "") : menuItemId;
+    
+    if (ALL_SUPPORTED_LAWS[lawId]) {
+      const item = ALL_SUPPORTED_LAWS[lawId];
+      const match = selection.match(LAW_ARTICLE_REGEX);
 
-    if (match) {
-      const articleTextForUrl = match[0].replace(/\s/g, "");
-      finalURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
-      displayText = `${item.displayName} ${match[0]}`;
-    } else {
-      const searchQuery = `${item.displayName} ${selection}`;
-      finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(
-        searchQuery
-      )}`;
-      displayText = searchQuery;
+      if (match) {
+        const articleTextForUrl = match[0].replace(/\s/g, "");
+        finalURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
+        displayText = `${item.displayName} ${match[0]}`;
+      } else {
+        const searchQuery = `${item.displayName} ${selection}`;
+        finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(
+          searchQuery
+        )}`;
+        displayText = searchQuery;
+      }
     }
   }
 
