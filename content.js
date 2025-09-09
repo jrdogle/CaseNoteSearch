@@ -100,3 +100,58 @@ window.setTimeout(() => {
     });
   }
 }, 100);
+
+// --- V1.2: 조문 복사 버튼 추가 ---
+window.addEventListener('load', () => {
+    // 디코딩된 URL에 '/법령/'이 포함되어 있는지 확인
+    if (decodeURIComponent(window.location.href).includes('/법령/')) {
+        const targetContainer = document.querySelector('#text_wo_hanja');
+        const articleContent = targetContainer ? targetContainer.querySelector('.law_article') : null;
+
+        if (articleContent) {
+            // 복사 버튼 생성
+            const copyButton = document.createElement('button');
+            copyButton.textContent = '조문 복사';
+            
+            // 버튼 스타일링
+            Object.assign(copyButton.style, {
+                position: 'fixed',
+                top: '180px',
+                right: '20px',
+                zIndex: '10000',
+                padding: '5px 10px',
+                backgroundColor: '#007aff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+            });
+
+            // 버튼 클릭 이벤트 리스너 추가
+            copyButton.addEventListener('click', () => {
+                const contentClone = articleContent.cloneNode(true);
+                const titleElement = contentClone.querySelector('.article-title');
+                if (titleElement) {
+                    titleElement.remove();
+                }
+                let textToCopy = contentClone.innerText
+                    .replace(/<[^>]*>/g, '')
+                    .replace(/\n\s*\n/g, '\n')
+                    .trim();
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    copyButton.textContent = '복사 완료!';
+                    setTimeout(() => {
+                        copyButton.textContent = '조문 복사';
+                    }, 1500);
+                }).catch(err => {
+                    console.error('조문 복사 실패:', err);
+                    copyButton.textContent = '복사 실패';
+                });
+            });
+
+            // 페이지에 버튼 추가
+            document.body.appendChild(copyButton);
+        }
+    }
+});
