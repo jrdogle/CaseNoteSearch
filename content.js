@@ -83,12 +83,17 @@ window.setTimeout(() => {
   }
 }, 100);
 
-// --- V1.2: 조문 복사 버튼 추가 ---
+// 복사 버튼 기능
 window.addEventListener('load', () => {
-    // 디코딩된 URL에 '/법령/'이 포함되어 있는지 확인
+    // 1. 법령 페이지: 조문 복사 버튼
     if (decodeURIComponent(window.location.href).includes('/법령/')) {
-        const targetContainer = document.querySelector('#text_wo_hanja');
-        const articleContent = targetContainer ? targetContainer.querySelector('.law_article') : null;
+        const mainContainer = document.querySelector('#text_wo_hanja') || document.querySelector('#text_original');
+        let articleContent = null;
+
+        if (mainContainer) {
+            articleContent = mainContainer.querySelector('.law_article');
+            if (!articleContent) articleContent = mainContainer;
+        }
 
         if (articleContent) {
             // 복사 버튼 생성
@@ -103,8 +108,8 @@ window.addEventListener('load', () => {
                 if (titleElement) {
                     titleElement.remove();
                 }
-                let textToCopy = contentClone.innerText
-                    .replace(/<[^>]*>/g, '')
+                const textToCopy = contentClone.innerText
+                    .replace(/\[[^\]]*\]/g, '')
                     .replace(/\n\s*\n/g, '\n')
                     .trim();
                 navigator.clipboard.writeText(textToCopy).then(() => {
@@ -120,6 +125,69 @@ window.addEventListener('load', () => {
 
             // 페이지에 버튼 추가
             document.body.appendChild(copyButton);
+        }
+    }
+    // 2. 판례 페이지: 판시사항, 판결요지 복사 버튼
+    else {
+        const createPrecedentCopyButton = (element, id, defaultText) => {
+            const button = document.createElement('button');
+            button.id = id;
+            button.textContent = defaultText;
+
+            button.addEventListener('click', () => {
+                const textToCopy = element.innerText
+                    .replace(/\n\s*\n/g, '\n').trim();
+
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalText = button.textContent;
+                    button.textContent = '복사 완료!';
+                    setTimeout(() => { button.textContent = originalText; }, 1500);
+                }).catch(err => {
+                    console.error(`${button.textContent} 실패:`, err);
+                    button.textContent = '복사 실패';
+                });
+            });
+            document.body.appendChild(button);
+            return button;
+        };
+
+        // 제목 텍스트를 기반으로 요소를 찾아 버튼을 생성하는 더 안정적인 방법
+        const headings = document.querySelectorAll('.panel-heading');
+        let issueButtonCreated = false;
+
+        if (headings.length > 0) {
+            headings.forEach(heading => {
+                const headingText = heading.textContent.trim();
+                // 제목 바로 다음 형제 요소를 내용으로 간주
+                const contentElement = heading.nextElementSibling;
+
+                if (!contentElement) {
+                    return; // 다음 제목으로 넘어감
+                }
+
+                if (headingText.includes('판시사항')) {
+                    // 내용이 없는 특정 요소를 건너뛰는 로직
+                    if (contentElement.id === 'summary_text' && contentElement.textContent.trim() === '') {
+                        return; // 이 요소를 건너뛰고 다음 heading으로 이동
+                    }
+                    // 중복 생성을 막는 안전장치
+                    if (!document.getElementById('casenote-copy-issue-btn')) {
+                        createPrecedentCopyButton(contentElement, 'casenote-copy-issue-btn', '판시사항 복사');
+                        issueButtonCreated = true;
+                    }
+                } else if (headingText.includes('판결요지') || headingText.includes('결정요지')) {
+                    if (!document.getElementById('casenote-copy-summary-btn')) {
+                        const buttonText = headingText.includes('결정요지') ? '결정요지 복사' : '판결요지 복사';
+                        createPrecedentCopyButton(contentElement, 'casenote-copy-summary-btn', buttonText);
+                    }
+                }
+            });
+
+            // 모든 제목 확인 후, 판시사항 버튼이 없는 경우에만 판결요지 버튼 위치 조정
+            const summaryButton = document.getElementById('casenote-copy-summary-btn');
+            if (summaryButton && !issueButtonCreated) {
+                summaryButton.classList.add('casenote-copy-btn-single');
+            }
         }
     }
 });

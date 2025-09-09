@@ -1,6 +1,6 @@
 #casenote-copy-btn {
     position: fixed;
-    top: 180px;
+    top: 120px;
     right: 20px;
     z-index: 10000;
     padding: 5px 10px;
@@ -10,6 +10,32 @@
     border-radius: 5px;
     cursor: pointer;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* 판례 페이지 복사 버튼 */
+#casenote-copy-issue-btn, #casenote-copy-summary-btn {
+    position: fixed;
+    right: 20px;
+    z-index: 10000;
+    padding: 5px 10px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+#casenote-copy-issue-btn {
+    top: 120px;
+}
+
+#casenote-copy-summary-btn {
+    top: 160px;
+}
+
+.casenote-copy-btn-single {
+    top: 120px !important;
 }
 
 #casenote-search-icon {
