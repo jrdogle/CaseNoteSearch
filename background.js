@@ -201,15 +201,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // 1. 팝업에서 히스토리 열기 요청
   else if (request.action === "openFromHistory") {
     createPopupWindow(request.item.url);
-    chrome.storage.local.get({ history: [] }, (result) => {
-      let history = result.history;
-      const updatedHistory = history.filter(
-        (item) =>
-          decodeURIComponent(item.url) !== decodeURIComponent(request.item.url)
-      );
-      updatedHistory.unshift(request.item);
-      chrome.storage.local.set({ history: updatedHistory });
-    });
+    // Re-add the item to the top of the history
+    saveToHistory(request.item);
   }
   // 2. 팝업에서 메뉴 설정 변경 요청
   else if (request.action === "updateContextMenus") {

@@ -8,34 +8,16 @@ const createSearchIcon = (x, y, selectedText) => {
 
   const icon = document.createElement("div");
   icon.id = "casenote-search-icon";
-
-  const iconWidth = 32;
-  const iconHeight = 32;
   const viewportWidth = window.innerWidth;
 
   let finalX = x;
+  const iconWidth = 32;
   if (x + iconWidth > viewportWidth) {
-    finalX = x - iconWidth - 50; 
-  }
-  const finalY = y;
+    finalX = x - iconWidth - 50;
+  } 
+  icon.style.top = `${y + window.scrollY}px`;
+  icon.style.left = `${finalX + window.scrollX}px`;
 
-  icon.style.cssText = `
-    position: absolute;
-    top: ${finalY + window.scrollY}px;
-    left: ${finalX + window.scrollX}px;
-    z-index: 99999;
-    cursor: pointer;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 10%;
-    width: ${iconWidth}px;
-    height: ${iconHeight}px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    padding: 0;
-  `;
   const img = document.createElement("img");
   img.src = chrome.runtime.getURL("images/icon48.png");
   img.style.width = "30px";
@@ -111,22 +93,8 @@ window.addEventListener('load', () => {
         if (articleContent) {
             // 복사 버튼 생성
             const copyButton = document.createElement('button');
+            copyButton.id = 'casenote-copy-btn';
             copyButton.textContent = '조문 복사';
-            
-            // 버튼 스타일링
-            Object.assign(copyButton.style, {
-                position: 'fixed',
-                top: '180px',
-                right: '20px',
-                zIndex: '10000',
-                padding: '5px 10px',
-                backgroundColor: '#007aff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-            });
 
             // 버튼 클릭 이벤트 리스너 추가
             copyButton.addEventListener('click', () => {

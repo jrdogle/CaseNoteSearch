@@ -15,14 +15,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalLawsListEl = document.getElementById("modal-laws-list");
   const modalSaveBtn = document.getElementById("modal-save-btn");
   const modalCancelBtn = document.getElementById("modal-cancel-btn");
+  const modalSearchInput = document.getElementById("modal-search-input");
   const clearHistoryBtn = document.getElementById("clear-history-btn");
 
   let tempFavoriteLaws = [];
+  let currentModalSettings = {};
 
   manageLawsBtn.addEventListener("click", () => {
     chrome.storage.local.get(DEFAULT_SETTINGS, (result) => {
       tempFavoriteLaws = [...result.favoriteLaws];
-      renderModalLaws(result.settings, result.favoriteLaws);
+      currentModalSettings = result.settings;
+      modalSearchInput.value = "";
+      renderModalLaws(currentModalSettings, tempFavoriteLaws, "");
       lawModal.style.display = "flex";
     });
   });
@@ -55,15 +59,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  modalSearchInput.addEventListener("input", (e) => {
+    const searchTerm = e.target.value;
+    // storage를 다시 읽는 대신, 캐싱된 설정 값을 사용합니다.
+    renderModalLaws(currentModalSettings, tempFavoriteLaws, searchTerm);
+  });
+
   // --- 렌더링 로직 ---
 
-  const renderModalLaws = (currentSettings, currentFavorites) => {
+  const renderModalLaws = (currentSettings, currentFavorites, searchTerm) => {
     modalLawsListEl.innerHTML = "";
-    const lawsByCategory = groupLawsByCategory(ALL_SUPPORTED_LAWS);
+    
+    const filteredLaws = Object.values(ALL_SUPPORTED_LAWS).filter(law => 
+      law.displayName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const lawsByCategory = groupLawsByCategory(filteredLaws);
 
     CATEGORY_ORDER.forEach((categoryName) => {
       if (lawsByCategory[categoryName]) {
         const categoryDiv = document.createElement("div");
+        categoryDiv.classList.add("modal-category-container"); // 필터링 시 빈 카테고리를 숨기기 위한 클래스
         const categoryTitle = document.createElement("div");
         categoryTitle.className = "modal-category-title";
         categoryTitle.textContent = categoryName;
@@ -188,6 +204,15 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // --- 히스토리 관련 로직 ---
+  historyListEl.addEventListener("click", (event) => {
+    if (event.target.classList.contains("history-delete-btn")) {
+      const indexToDelete = parseInt(event.target.dataset.index, 10);
+      if (!isNaN(indexToDelete)) {
+        deleteHistoryItem(indexToDelete);
+      }
+    }
+  });
+
   clearHistoryBtn.addEventListener("click", () => {
     if (confirm("정말로 모든 조회 기록을 삭제하시겠습니까?")) {
       chrome.storage.local.set({ history: [] });
@@ -207,11 +232,12 @@ document.addEventListener("DOMContentLoaded", () => {
         textSpan.textContent = item.displayText;
         textSpan.title = item.displayText;
         textSpan.addEventListener("click", () => openHistoryItem(item));
-        const deleteBtn = document.createElement("span");
+        const deleteBtn = document.createElement("button");
         deleteBtn.className = "history-delete-btn";
-        deleteBtn.innerHTML = "&times;";
+        deleteBtn.innerHTML = "&times;"; // The 'x' symbol
         deleteBtn.title = "기록 삭제";
-        deleteBtn.addEventListener("click", () => deleteHistoryItem(index));
+        deleteBtn.dataset.index = index; // 삭제할 인덱스를 data 속성으로 저장
+        // 개별 이벤트 리스너는 제거합니다.
         li.appendChild(textSpan);
         li.appendChild(deleteBtn);
         historyListEl.appendChild(li);

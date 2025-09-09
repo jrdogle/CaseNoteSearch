@@ -106,21 +106,24 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        margin-right: 8px;
       }
       .history-item-text:hover {
         color: #007aff;
       }
       .history-delete-btn {
         cursor: pointer;
-        color: #aaa;
         font-weight: bold;
         font-size: 20px;
         padding: 0 8px;
         flex-shrink: 0;
         line-height: 1;
+        border: none;
+        background: transparent;
+        color: #aaa;
       }
       .history-delete-btn:hover {
-        color: #d9534f;
+        color: #d9534f !important;
       }
       #history-empty-msg {
         color: #888;
@@ -284,6 +287,7 @@
     <div id="law-modal" class="modal-overlay">
       <div class="modal-content">
         <h3>법률 목록 관리</h3>
+        <input type="text" id="modal-search-input" placeholder="법률 이름 검색..." style="width: 95%; padding: 6px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px;">
         <div id="modal-laws-list" class="modal-laws-list"></div>
         <div class="modal-actions">
           <span id="save-feedback">저장되었습니다!</span> 

@@ -1,0 +1,29 @@
+#casenote-copy-btn {
+    position: fixed;
+    top: 180px;
+    right: 20px;
+    z-index: 10000;
+    padding: 5px 10px;
+    background-color: #007aff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+#casenote-search-icon {
+  position: absolute;
+  z-index: 99999;
+  cursor: pointer;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 10%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  padding: 0;
+}
