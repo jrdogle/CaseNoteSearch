@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS = {
 
 export const CATEGORY_ORDER = ["공법", "민사법", "형사법", "지적재산권법"];
 
-export const MAX_FAVORITES = 3; // 즐겨찾기 최대 개수
+export const MAX_FAVORITES = 5; // 즐겨찾기 최대 개수
 
 // 판례 및 조문 번호 식별을 위한 정규식
 export const CONST_COURT_REGEX = /\d{2,4}헌[가-아]\d+/;

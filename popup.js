@@ -88,9 +88,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const renderModalLaws = (currentSettings, currentFavorites, searchTerm) => {
     modalLawsListEl.innerHTML = "";
     
-    const filteredLaws = Object.values(ALL_SUPPORTED_LAWS).filter(law => 
-      law.displayName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredLaws = Object.keys(ALL_SUPPORTED_LAWS)
+      .map(id => ({ id, ...ALL_SUPPORTED_LAWS[id] })) // 각 법률 객체에 id 속성 추가
+      .filter(law => 
+        law.displayName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
     const lawsByCategory = groupLawsByCategory(filteredLaws);
 
