@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "CaseNote 검색기",
-  "version": "1.1",
-  "description": "자주 쓰는 법률을 선택하여, 텍스트를 CaseNote 팝업으로 빠르게 엽니다.",
+  "version": "1.2",
+  "description": "웹페이지의 법률 조문, 판례 번호를 '복사-붙여넣기' 없이, 1초 만에 검색하세요.",
   "permissions": [
     "contextMenus",
     "system.display",

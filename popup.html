@@ -8,8 +8,13 @@
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           sans-serif;
         width: 280px;
-        padding: 10px;
-        color: #333;
+        height: 500px; /* 고정 높이 */
+        position: relative; /* 푸터 위치 고정을 위한 기준 */
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+        padding: 12px 12px 50px 12px; /* 푸터 공간 확보를 위한 하단 여백 추가 */
+        background-color: #f8f9fa;
+        color: #212529;
       }
       h2,
       h4 {
@@ -22,14 +27,17 @@
       }
       button {
         cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
       }
 
       #main-title {
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        font-size: 18px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        font-size: 16px;
+        font-weight: 600;
         text-align: center;
-        color: #444;
+        color: #343a40;
+        border-bottom: 1px solid #dee2e6;
       }
 
       /* --- 헤더 (제목 + 관리 버튼) --- */
@@ -37,40 +45,48 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 15px;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #e0e0e0;
+        margin-top: 20px;
+        margin-bottom: 12px;
       }
       .section-header h4 {
-        padding-bottom: 5px;
-        font-size: 14px;
-        color: #555;
-        border-bottom: none;
+        font-size: 13px;
+        font-weight: 600;
+        color: #495057;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       .manage-btn {
         border: none;
         background-color: transparent;
-        color: #007aff;
+        color: #6c757d;
         font-size: 12px;
+        font-weight: 500;
         padding: 5px;
       }
-      .manage-btn:hover {
-        text-decoration: underline;
+      .manage-btn:hover, #clear-history-btn:hover {
+        color: #007aff;
+        text-decoration: none;
       }
 
       /* --- 텍스트로 바로 검색 --- */
       #quick-search-container {
         display: flex;
-        margin-bottom: 15px;
+        margin-bottom: 16px;
       }
       #quick-search-input {
         flex-grow: 1;
-        padding: 6px;
-        border: 1px solid #ccc;
+        padding: 8px;
+        border: 1px solid #ced4da;
         border-radius: 4px;
-        resize: vertical;
         font-family: inherit;
         font-size: 13px;
+        background-color: #fff;
+        transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+      }
+      #quick-search-input:focus {
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
       }
       #quick-search-btn {
         margin-left: 8px;
@@ -79,7 +95,11 @@
         background-color: #007aff;
         color: white;
         border-radius: 4px;
-        font-weight: 500;
+        font-weight: 600;
+      }
+      #quick-search-btn:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
       }
 
       /* --- 선택된 법률 목록 --- */
@@ -96,30 +116,44 @@
         display: inline-block;
         margin-bottom: 8px;
       }
+      #non-favorite-laws-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-top: 4px;
+      }
       .selected-laws-list {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
-        padding-left: 4px;
+        gap: 8px;
       }
       .selected-laws-list li {
-        font-size: 14px;
-        color: #333;
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 3px 10px;
+        border-radius: 15px;
+        font-size: 13px;
       }
       #settings-empty-msg, #favorites-empty-msg {
         color: #888;
         text-align: center;
-        padding: 15px 0;
         font-size: 13px;
+        margin: 0;
+        padding: 8px 4px;
+      }
+      .favorite-title {
+        background-color: #fffbe6 !important;
+        color: #b28e00 !important;
       }
 
       /* --- 히스토리 --- */
       #history-list li {
         display: flex;
         align-items: center;
-        padding: 8px 4px;
+        padding: 10px 4px;
         font-size: 14px;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid #e9ecef;
+        transition: background-color 0.2s;
       }
       #history-list li:last-child {
         border-bottom: none;
@@ -132,7 +166,7 @@
         text-overflow: ellipsis;
         margin-right: 8px;
       }
-      .history-item-text:hover {
+      #history-list li:hover .history-item-text {
         color: #007aff;
       }
       .history-delete-btn {
@@ -145,9 +179,14 @@
         border: none;
         background: transparent;
         color: #aaa;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      #history-list li:hover .history-delete-btn {
+        opacity: 1;
       }
       .history-delete-btn:hover {
-        color: #d9534f !important;
+        color: #d9534f;
       }
       #history-empty-msg {
         color: #888;
@@ -155,29 +194,34 @@
         padding: 20px 0;
         font-size: 13px;
       }
-      .history-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 15px;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #e0e0e0;
-      }
-      .history-header h4 {
-        margin: 0;
-        padding-bottom: 5px;
-        border-bottom: none;
-      }
       #clear-history-btn {
         border: none;
         background-color: transparent;
         color: #888;
         cursor: pointer;
         font-size: 12px;
-        padding: 5px;
       }
-      #clear-history-btn:hover {
-        color: #d9534f;
+
+      /* --- Footer Links --- */
+      .footer-links {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-top: 1px solid #e9ecef;
+        text-align: center;
+        font-size: 12px;
+      }
+      .footer-links a {
+        color: #6c757d;
+        text-decoration: none;
+        margin: 0 8px;
+        transition: color 0.2s;
+      }
+      .footer-links a:hover {
+        color: #007aff;
       }
 
       /* --- 모달(Modal) 창 스타일 --- */
@@ -289,32 +333,37 @@
     </div>
 
     <div class="section-header">
-      <h4>⭐ 즐겨찾는 법률</h4>
-    </div>
-    <div id="favorites-container">
-      <ul id="favorite-laws-list" class="selected-laws-list"></ul>
-      <p id="favorites-empty-msg" style="display: none">
-        '관리'에서 별을 눌러<br />최대 5개까지 추가할 수 있습니다.
-      </p>
-    </div>
-
-    <div class="section-header">
       <h4>나의 법률 목록</h4>
       <button id="manage-laws-btn" class="manage-btn">관리</button>
     </div>
     <div id="settings-container">
-      <ul id="selected-laws-list"></ul>
+      <!-- 즐겨찾기 목록 -->
+      <div id="favorites-container" class="law-category-group">
+        <span class="law-category-title favorite-title">⭐ 즐겨찾기</span>
+        <ul id="favorite-laws-list" class="selected-laws-list"></ul>
+        <p id="favorites-empty-msg" style="display: none">
+          '관리'에서 별을 눌러 최대 5개까지<br />즐겨찾기를 추가할 수 있습니다.
+        </p>
+      </div>
+      <hr id="favorites-separator" style="border: none; border-top: 1px solid #e9ecef; margin: 12px 0; display: none;" />
+      <!-- 나머지 법률 목록 -->
       <p id="settings-empty-msg" style="display: none">
         선택된 법률이 없습니다.<br />'관리'에서 추가해 주세요.
       </p>
     </div>
-
+    
     <div class="section-header">
       <h4>최근 조회 기록</h4>
       <button id="clear-history-btn" title="전체 기록 삭제">전체 삭제</button>
     </div>
     <ul id="history-list"></ul>
     <p id="history-empty-msg" style="display: none">기록이 없습니다.</p>
+
+    <div class="footer-links">
+      <a href="https://sticky-eocursor-c7a.notion.site/2696409b0fae805689aaf95e093cd345?pvs=74" target="_blank">사용 가이드</a>
+      <span style="color: #ced4da;">|</span>
+      <a href="https://sticky-eocursor-c7a.notion.site/FAQ-2696409b0fae803b849cf52a505087df" target="_blank">의견 및 제안</a>
+    </div>
 
     <div id="law-modal" class="modal-overlay">
       <div class="modal-content">

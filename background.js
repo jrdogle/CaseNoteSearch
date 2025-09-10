@@ -61,7 +61,10 @@ const updateContextMenus = () => {
                                 .filter(id => settings[id])
                                 .map(id => ({ id, ...ALL_SUPPORTED_LAWS[id] }));
 
-      const categories = enabledLaws.reduce((acc, law) => {
+      // 즐겨찾기에 추가된 법률은 일반 목록에서 제외하여 중복 표시 방지
+      const nonFavoriteEnabledLaws = enabledLaws.filter(law => !favoriteLaws.includes(law.id));
+
+      const categories = nonFavoriteEnabledLaws.reduce((acc, law) => {
         (acc[law.category] = acc[law.category] || []).push(law);
         return acc;
       }, {});

@@ -162,12 +162,14 @@ document.addEventListener("DOMContentLoaded", () => {
       favoriteLawsList.innerHTML = "";
       if (favoriteLaws.length > 0) {
         favoritesEmptyMsg.style.display = "none";
+        favoriteLawsList.style.display = "flex"; // 목록이 있으면 flex로 표시
         favoriteLaws.forEach(lawId => {
           const li = document.createElement("li");
           li.textContent = ALL_SUPPORTED_LAWS[lawId].displayName;
           favoriteLawsList.appendChild(li);
         });
       } else {
+        favoriteLawsList.style.display = "none"; // 목록이 없으면 숨김
         favoritesEmptyMsg.style.display = "block";
       }
 
@@ -176,38 +178,36 @@ document.addEventListener("DOMContentLoaded", () => {
         .filter((id) => settings[id] === true)
         .map((id) => ({ id, ...ALL_SUPPORTED_LAWS[id] }));
 
-      selectedLawsContainer.innerHTML = "";
+      // 기존에 생성된 카테고리 그룹 및 목록을 모두 삭제
+      selectedLawsContainer.querySelectorAll('.law-category-group:not(#favorites-container)').forEach(el => el.remove());
+      const oldList = document.getElementById("non-favorite-laws-list");
+      if (oldList) oldList.remove();
 
-      if (enabledLaws.length === 0) {
+      const nonFavoriteLaws = enabledLaws.filter(law => !favoriteLaws.includes(law.id));
+
+      // 즐겨찾기와 나머지 목록 사이에 구분선 표시
+      document.getElementById("favorites-separator").style.display = "block";
+
+      // 즐겨찾기를 제외한 나머지 법률이 하나라도 있을 경우 목록을 그림
+      if (nonFavoriteLaws.length > 0) {
+        settingsEmptyMsg.style.display = "none";
+
+        const ul = document.createElement("ul");
+        ul.id = "non-favorite-laws-list";
+        ul.className = "selected-laws-list";
+
+        nonFavoriteLaws.forEach((law) => {
+          const li = document.createElement("li");
+          li.textContent = law.displayName;
+          ul.appendChild(li);
+        });
+        selectedLawsContainer.appendChild(ul);
+      } 
+      // 활성화된 법률이 전혀 없을 때만 안내 문구 표시
+      else if (enabledLaws.length === 0) {
         settingsEmptyMsg.style.display = "block";
-        selectedLawsContainer.appendChild(settingsEmptyMsg);
       } else {
         settingsEmptyMsg.style.display = "none";
-        const lawsByCategory = groupLawsByCategory(enabledLaws);
-
-        CATEGORY_ORDER.forEach((categoryName) => {
-          if (lawsByCategory[categoryName]) {
-            const groupDiv = document.createElement("div");
-            groupDiv.className = "law-category-group";
-
-            const titleSpan = document.createElement("span");
-            titleSpan.className = "law-category-title";
-            titleSpan.textContent = categoryName;
-
-            const ul = document.createElement("ul");
-            ul.className = "selected-laws-list";
-
-            lawsByCategory[categoryName].forEach((law) => {
-              const li = document.createElement("li");
-              li.textContent = law.displayName;
-              ul.appendChild(li);
-            });
-
-            groupDiv.appendChild(titleSpan);
-            groupDiv.appendChild(ul);
-            selectedLawsContainer.appendChild(groupDiv);
-          }
-        });
       }
     });
   };
