@@ -11,7 +11,7 @@
 
 보다 자세한 사용법, FAQ, 업데이트 로그 등은 아래의 공식 문서 페이지에서 확인하실 수 있습니다.
 
-[➡️ CaseNote 검색기 공식 문서 바로가기](https://sticky-eocursor-c7a.notion.site/CaseNote-2696409b0fae80ea8974c0a6e6763612)
+[➡️ CaseNote 검색기 공식 문서 바로가기](https://casenotesearch.notion.site/)
 
 ---
 
@@ -88,7 +88,7 @@
 
 ## 🤝 기여하기 (Contributing)
 
-버그 리포트, 기능 제안 등 어떤 형태의 기여든 환영합니다. 공식 문서의 [피드백 및 기여](https://sticky-eocursor-c7a.notion.site/2696409b0fae8073be37efa7b7c7e920) 페이지를 참고하시거나 GitHub의 Issues 기능을 통해 편하게 의견을 남겨주세요.
+버그 리포트, 기능 제안 등 어떤 형태의 기여든 환영합니다. 공식 문서의 [피드백 및 기여](https://casenotesearch.notion.site/2696409b0fae8073be37efa7b7c7e920) 페이지를 참고하시거나 GitHub의 Issues 기능을 통해 편하게 의견을 남겨주세요.
 
 ---
 
