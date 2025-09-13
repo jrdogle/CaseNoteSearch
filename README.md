@@ -1,4 +1,4 @@
-# 🔎 CaseNote 검색기 (CaseNote Searcher)
+# 🔎 CaseNote 검색기 (CaseNote Search)
 
 **어떤 웹페이지에서든 법률 조문 및 판례 번호를 CaseNote 팝업으로 빠르게 검색하는 Chrome 확장 프로그램입니다.**
 
