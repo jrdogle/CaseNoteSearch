@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "CaseNote 검색기 베타",
+  "name": "CaseNote 검색기 Beta",
   "version": "1.2",
-  "version_name": "1.2 베타",
-  "description": "이 확장 프로그램은 베타 테스트용입니다. 웹페이지의 법률 조문, 판례 번호를 '복사-붙여넣기' 없이, 1초 만에 검색하세요.",
+  "version_name": "1.2 Beta",
+  "description": "이 확장 프로그램은 베타 테스트용입니다.\n웹페이지의 법률 조문, 판례 번호를 '복사-붙여넣기' 없이, 1초 만에 검색하세요.",
   "permissions": [
     "contextMenus",
     "system.display",
