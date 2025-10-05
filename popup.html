@@ -54,7 +54,7 @@
         --modal-overlay-color: rgba(0, 0, 0, 0.7);
         --danger-color: #ff453a;
         --success-color: #30d158;
-        --secondary-btn-bg-color: #8e8e93;
+        --secondary-btn-bg-color: #6c757d;
         --cancel-btn-bg-color: #505052;
         }
 
@@ -98,7 +98,7 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-overlay-color); z-index: 1000; display: none; justify-content: center; align-items: center; }
         .modal-content { background-color: var(--modal-bg-color); padding: 20px 12px; border-radius: 8px; width: 320px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
         .modal-content h3 { margin-top: 0; text-align: center; color: var(--text-color-strong); }
-        .modal-description { font-size: 12px; color: var(--text-color-secondary); background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; margin-top: 8px; margin-bottom: 15px; line-height: 1.6; }
+        .modal-description { font-size: 12px; color: var(--text-color-secondary); background-color: var(--modal-bg-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; margin-top: 8px; margin-bottom: 15px; line-height: 1.6; }
         .modal-description p { margin: 0; padding: 0; }
         .modal-laws-list { height: 250px; overflow-y: auto; border: 1px solid var(--border-color-modal); border-radius: 4px; padding: 10px; margin-bottom: 15px;}
         .modal-category-title { font-size: 13px; font-weight: bold; margin-top: 10px; margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1px solid var(--border-color-modal-title); color: var(--text-color-normal); }
@@ -114,8 +114,12 @@
         .modal-actions button { padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color-modal); margin-left: 8px; color: var(--text-color-normal); }
         #modal-save-btn { background-color: var(--accent-color); color: white; border-color: var(--accent-color); }
         #modal-cancel-btn { background-color: var(--cancel-btn-bg-color); }
-        .modal-btn-secondary { margin-right: auto; background-color: var(--secondary-btn-bg-color); color: white; border-color: var(--secondary-btn-bg-color); }
-        #add-law-form input { width: 95%; padding: 8px; margin-bottom: 10px; border: 1px solid var(--border-color-modal); border-radius: 4px; font-size: 13px; background-color: var(--input-bg-color); color: var(--text-color-normal); }
+        #modal-search-input { width: 95%; padding: 6px; margin-bottom: 10px; border: 1px solid var(--border-color-input); border-radius: 4px; background-color: var(--bg-color); color: var(--text-color-normal); }
+        .modal-btn-secondary { margin-right: auto; background-color: var(--secondary-btn-bg-color); border-color: var(--secondary-btn-bg-color); }
+        #add-new-law-btn { color: white; }
+        #add-law-save-btn { background-color: var(--accent-color); color: white; border-color: var(--accent-color); }
+        #add-law-cancel-btn { background-color: var(--cancel-btn-bg-color); }
+        #add-law-form input { width: 95%; padding: 8px; margin-bottom: 10px; border: 1px solid var(--border-color-modal); border-radius: 4px; font-size: 13px; background-color: var(--bg-color); color: var(--text-color-normal); }
         .delete-law-btn { background: transparent; border: none; color: var(--text-color-muted); cursor: pointer; font-size: 20px; font-weight: bold; line-height: 1; padding: 0 5px; margin-left: 8px;}
         .delete-law-btn:hover { color: var(--danger-color); }
     </style>
@@ -155,7 +159,7 @@
                 <p><b>✓ 체크:</b> 우클릭 메뉴에 법률을 표시합니다.</p>
                 <p><b>★ 즐겨찾기:</b> 자주 쓰는 법률을 메뉴 상단에 고정합니다.</p>
             </div>
-            <input type="text" id="modal-search-input" placeholder="법률 이름 검색..." style="width: 95%; padding: 6px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px;">
+            <input type="text" id="modal-search-input" placeholder="법률 이름 검색...">
             <div id="modal-laws-list" class="modal-laws-list"></div>
             <div class="modal-actions">
                 <button id="add-new-law-btn" class="modal-btn-secondary">새 법률 추가</button>
