@@ -79,7 +79,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     addLawFeedback.style.visibility = "hidden";
     addLawSaveBtn.disabled = true;
-    addLawSaveBtn.textContent = '확인 중...';
 
     const validationUrl = `https://casenote.kr/법령/${encodeURIComponent(urlName)}/제1조`;
 
@@ -115,7 +114,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       addLawFeedback.style.visibility = "visible";
     } finally {
       addLawSaveBtn.disabled = false;
-      addLawSaveBtn.textContent = '추가';
     }
   });
 
@@ -338,37 +336,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       chrome.storage.local.set({
         settings: DEFAULT_SETTINGS.settings,
         favoriteLaws: [],
-        userAddedLaws: {}
+        userAddedLaws: {},
+        history: []
       }, () => {
         alert("설정이 초기화되었습니다.");
       });
     }
   });
 
-  const applyTheme = (theme) => {
-    if (theme === 'dark') {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
+  const applyTheme = (isDark) => {
+    document.body.classList.toggle('dark-mode', isDark);
   };
-
-  const initializeTheme = () => {
-    chrome.storage.sync.get('theme', () => {
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      applyTheme(prefersDark ? 'dark' : 'light');
-    });
-  };
-
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-    chrome.storage.sync.get('theme', ({ theme }) => {
-      if (!theme) {
-        applyTheme(e.matches ? 'dark' : 'light');
-      }
-    });
+  const systemThemeListener = window.matchMedia('(prefers-color-scheme: dark)');
+  applyTheme(systemThemeListener.matches);
+  systemThemeListener.addEventListener('change', (e) => {
+    applyTheme(e.matches);
   });
 
-  initializeTheme();
   renderUI();
   renderHistory();
 });
