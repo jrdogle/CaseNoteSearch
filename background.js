@@ -6,105 +6,66 @@ import {
   CATEGORY_ORDER,
 } from "./constants.js";
 
+const getCombinedLaws = async () => {
+  const result = await chrome.storage.local.get({ userAddedLaws: {} });
+  return { ...ALL_SUPPORTED_LAWS, ...result.userAddedLaws };
+};
+
 let popupWindowId = null;
 let debounceTimer = null;
 
-const updateContextMenus = () => {
-  chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: "casenoteParent",
-      title: "CaseNote에서 검색",
-      contexts: ["selection"],
-    });
+const updateContextMenus = async () => {
+  const combinedLaws = await getCombinedLaws();
 
-    chrome.contextMenus.create({
-      id: "PrecedentSearch",
-      parentId: "casenoteParent",
-      title: "판례 검색",
-      contexts: ["selection"],
-    });
+  chrome.contextMenus.removeAll(async () => {
+    chrome.contextMenus.create({ id: "casenoteParent", title: "CaseNote에서 검색", contexts: ["selection"] });
+    chrome.contextMenus.create({ id: "PrecedentSearch", parentId: "casenoteParent", title: "판례 검색", contexts: ["selection"] });
 
-    chrome.storage.local.get(DEFAULT_SETTINGS, (result) => {
-      const { settings, favoriteLaws } = result;
-      
-      if (favoriteLaws && favoriteLaws.length > 0) {
-        chrome.contextMenus.create({
-          id: "separator_favorites",
-          parentId: "casenoteParent",
-          type: "separator",
-          contexts: ["selection"],
-        });
-
-        favoriteLaws.forEach(lawId => {
-          const law = ALL_SUPPORTED_LAWS[lawId];
-          if (law) {
-            chrome.contextMenus.create({
-              id: `favorite_${lawId}`,
-              parentId: "casenoteParent",
-              title: `${law.displayName} 조문 검색`,
-              contexts: ["selection"],
-            });
-          }
-        });
-      }
-
-      chrome.contextMenus.create({
-        id: "separator_laws",
-        parentId: "casenoteParent",
-        type: "separator",
-        contexts: ["selection"],
-      });
-
-      const enabledLaws = Object.keys(ALL_SUPPORTED_LAWS)
-                                .filter(id => settings[id])
-                                .map(id => ({ id, ...ALL_SUPPORTED_LAWS[id] }));
-
-      // 즐겨찾기에 추가된 법률은 일반 목록에서 제외하여 중복 표시 방지
-      const nonFavoriteEnabledLaws = enabledLaws.filter(law => !favoriteLaws.includes(law.id));
-
-      const categories = nonFavoriteEnabledLaws.reduce((acc, law) => {
-        (acc[law.category] = acc[law.category] || []).push(law);
-        return acc;
-      }, {});
-
-      CATEGORY_ORDER.forEach(categoryName => {
-        if (categories[categoryName]) {
-            const categoryLaws = categories[categoryName];
-            
-            const categoryParentId = `category-${categoryName}`;
-            chrome.contextMenus.create({
-              id: categoryParentId,
-              parentId: "casenoteParent",
-              title: categoryName,
-              contexts: ["selection"],
-            });
-
-            categoryLaws.forEach(law => {
-              chrome.contextMenus.create({
-                id: law.id,
-                parentId: categoryParentId,
-                title: `${law.displayName} 조문 검색`,
-                contexts: ["selection"],
-              });
-            });
+    const result = await chrome.storage.local.get(DEFAULT_SETTINGS);
+    const { settings, favoriteLaws } = result;
+    
+    if (favoriteLaws && favoriteLaws.length > 0) {
+      chrome.contextMenus.create({ id: "separator_favorites", parentId: "casenoteParent", type: "separator", contexts: ["selection"] });
+      favoriteLaws.forEach(lawId => {
+        const law = combinedLaws[lawId];
+        if (law) {
+          chrome.contextMenus.create({ id: `favorite_${lawId}`, parentId: "casenoteParent", title: `${law.displayName} 조문 검색`, contexts: ["selection"] });
         }
       });
+    }
+
+    chrome.contextMenus.create({ id: "separator_laws", parentId: "casenoteParent", type: "separator", contexts: ["selection"] });
+
+    const enabledLaws = Object.keys(combinedLaws).filter(id => settings[id]).map(id => ({ id, ...combinedLaws[id] }));
+    const nonFavoriteEnabledLaws = enabledLaws.filter(law => !favoriteLaws.includes(law.id));
+    const categories = nonFavoriteEnabledLaws.reduce((acc, law) => {
+      (acc[law.category] = acc[law.category] || []).push(law);
+      return acc;
+    }, {});
+
+    const customCategories = Object.keys(categories).filter(c => !CATEGORY_ORDER.includes(c));
+    const finalCategoryOrder = [...CATEGORY_ORDER, ...customCategories.sort()];
+
+    finalCategoryOrder.forEach(categoryName => {
+      if (categories[categoryName]) {
+          const categoryLaws = categories[categoryName];
+          const categoryParentId = `category-${categoryName}`;
+          chrome.contextMenus.create({ id: categoryParentId, parentId: "casenoteParent", title: categoryName, contexts: ["selection"] });
+          categoryLaws.forEach(law => {
+            chrome.contextMenus.create({ id: law.id, parentId: categoryParentId, title: `${law.displayName} 조문 검색`, contexts: ["selection"] });
+          });
+      }
     });
   });
 };
 
-// 확장 프로그램 설치 및 시작 시 메뉴 생성
 chrome.runtime.onInstalled.addListener(updateContextMenus);
 chrome.runtime.onStartup.addListener(updateContextMenus);
-
-// 팝업 윈도우가 닫힐 때 ID 초기화
 chrome.windows.onRemoved.addListener((windowId) => {
   if (windowId === popupWindowId) {
     popupWindowId = null;
   }
 });
-
-// 팝업 윈도우의 크기/위치 변경 시 저장 (디바운싱 적용)
 chrome.windows.onBoundsChanged.addListener((window) => {
   if (window.id === popupWindowId && window.state !== 'minimized') {
     clearTimeout(debounceTimer);
@@ -122,19 +83,16 @@ chrome.windows.onBoundsChanged.addListener((window) => {
 
 // 지능형 검색 로직
 const handleIntelligentSearch = async (selection) => {
-  for (const id in ALL_SUPPORTED_LAWS) {
-    const item = ALL_SUPPORTED_LAWS[id];
+  const combinedLaws = await getCombinedLaws();
+  for (const id in combinedLaws) {
+    const item = combinedLaws[id];
     if (selection.includes(item.displayName)) {
       const match = selection.match(LAW_ARTICLE_REGEX);
       if (match) {
         let articleTextForUrl = match[0].replace(/\s/g, "");
-        if (!articleTextForUrl.startsWith("제")) {
-          articleTextForUrl = "제" + articleTextForUrl;
-        }
+        if (!articleTextForUrl.startsWith("제")) { articleTextForUrl = "제" + articleTextForUrl; }
         const directURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
-        const displayText = selection;
-        
-        await openCheckedUrl(directURL, selection, displayText);
+        await openCheckedUrl(directURL, selection, selection);
         return;
       }
     }
@@ -159,44 +117,35 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const selection = info.selectionText.trim();
   if (!selection) return;
   const menuItemId = info.menuItemId;
+  const combinedLaws = await getCombinedLaws();
 
   // "판례 검색" 메뉴를 클릭한 경우
   if (menuItemId === "PrecedentSearch") {
     const precedent = parsePrecedent(selection);
     if (precedent) {
       const directURL = `https://casenote.kr/${precedent.courtUrlName}/${encodeURIComponent(precedent.caseNumber)}`;
-      const displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
-      await openCheckedUrl(directURL, selection, displayText);
+      await openCheckedUrl(directURL, selection, `${precedent.courtDisplayName} ${precedent.caseNumber}`);
     } else {
-      const finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(selection)}`;
-      const displayText = selection;
-      createPopupWindow(finalURL);
-      saveToHistory({ url: finalURL, displayText: displayText });
+      openGeneralSearch(selection);
     }
     return;
   }
-  
+
   // 즐겨찾기 메뉴 또는 일반 법률 메뉴 클릭
   const lawId = menuItemId.startsWith("favorite_") ? menuItemId.replace("favorite_", "") : menuItemId;
-  if (ALL_SUPPORTED_LAWS[lawId]) {
-    const item = ALL_SUPPORTED_LAWS[lawId];
+  // --- ▼▼▼ 수정된 부분: combinedLaws를 사용하도록 변경 ---
+  if (combinedLaws[lawId]) {
+    const item = combinedLaws[lawId];
+  // --- ▲▲▲ 수정 끝 ---
     const match = selection.match(LAW_ARTICLE_REGEX);
-
     if (match) {
       let articleTextForUrl = match[0].replace(/\s/g, "");
-      if (!articleTextForUrl.startsWith("제")) {
-        articleTextForUrl = "제" + articleTextForUrl;
-      }
+      if (!articleTextForUrl.startsWith("제")) { articleTextForUrl = "제" + articleTextForUrl; }
       const directURL = `https://casenote.kr/법령/${item.urlName}/${articleTextForUrl}`;
       const displayText = `${item.displayName} ${match[0]}`;
-      const fallbackQuery = `${item.displayName} ${selection}`;
-      await openCheckedUrl(directURL, fallbackQuery, displayText);
+      await openCheckedUrl(directURL, `${item.displayName} ${selection}`, displayText);
     } else {
-      const searchQuery = `${item.displayName} ${selection}`;
-      const finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(searchQuery)}`;
-      const displayText = searchQuery;
-      createPopupWindow(finalURL);
-      saveToHistory({ url: finalURL, displayText: displayText });
+      openGeneralSearch(`${item.displayName} ${selection}`);
     }
   }
 });
@@ -291,18 +240,15 @@ const createPopupWindow = (url) => {
 const openCheckedUrl = async (directUrl, fallbackQuery, displayText) => {
   try {
     const response = await fetch(directUrl, { method: 'HEAD' });
-    if (response.status === 200) {
+    if (response.ok) {
       createPopupWindow(directUrl);
       saveToHistory({ url: directUrl, displayText: displayText });
     } else {
-      const searchURL = `https://casenote.kr/search/?q=${encodeURIComponent(fallbackQuery)}`;
-      createPopupWindow(searchURL);
-      saveToHistory({ url: searchURL, displayText: fallbackQuery });
+      openGeneralSearch(fallbackQuery);
     }
   } catch (error) {
-    const searchURL = `https://casenote.kr/search/?q=${encodeURIComponent(fallbackQuery)}`;
-    createPopupWindow(searchURL);
-    saveToHistory({ url: searchURL, displayText: fallbackQuery });
+    console.error("URL 확인 중 오류:", error);
+    openGeneralSearch(fallbackQuery);
   }
 };
 
@@ -339,3 +285,10 @@ const parsePrecedent = (selection) => {
 
   return { ...courtInfo, caseNumber };
 };
+
+// 일반 검색을 실행하고 히스토리에 저장하는 함수
+const openGeneralSearch = (query) => {
+    const searchURL = `https://casenote.kr/search/?q=${encodeURIComponent(query)}`;
+    createPopupWindow(searchURL);
+    saveToHistory({ url: searchURL, displayText: query });
+}

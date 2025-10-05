@@ -1,13 +1,16 @@
 {
   "manifest_version": 3,
   "name": "CaseNote 검색기",
-  "version": "1.2.1",
-  "version_name": "1.2.1",
+  "version": "1.2.3",
+  "version_name": "1.2.3",
   "description": "웹페이지의 법률 조문, 판례 번호를 '복사-붙여넣기' 없이, 1초 만에 검색하세요.",
   "permissions": [
     "contextMenus",
     "system.display",
     "storage"
+  ],
+  "host_permissions": [
+    "*://casenote.kr/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -17,12 +20,16 @@
     "default_popup": "popup.html",
     "default_icon": {
       "16": "images/icon16.png",
+      "32": "images/icon32.png",
+      "34": "images/icon34.png",
       "48": "images/icon48.png",
       "128": "images/icon128.png"
     }
   },
   "icons": {
     "16": "images/icon16.png",
+    "32": "images/icon32.png",
+    "34": "images/icon34.png",
     "48": "images/icon48.png",
     "128": "images/icon128.png"
   },

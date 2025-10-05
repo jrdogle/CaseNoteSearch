@@ -1,18 +1,20 @@
 import { ALL_SUPPORTED_LAWS, DEFAULT_SETTINGS, CATEGORY_ORDER, MAX_FAVORITES } from "./constants.js";
 
-document.addEventListener("DOMContentLoaded", () => {
+const getCombinedLaws = async () => {
+  const result = await chrome.storage.local.get({ userAddedLaws: {} });
+  return { ...ALL_SUPPORTED_LAWS, ...result.userAddedLaws };
+};
+
+document.addEventListener("DOMContentLoaded", async () => {
   const quickSearchInput = document.getElementById("quick-search-input");
   const quickSearchBtn = document.getElementById("quick-search-btn");
-
   const selectedLawsContainer = document.getElementById("settings-container");
   const settingsEmptyMsg = document.getElementById("settings-empty-msg");
   const favoriteLawsList = document.getElementById("favorite-laws-list");
   const favoritesEmptyMsg = document.getElementById("favorites-empty-msg");
-
   const historyListEl = document.getElementById("history-list");
   const historyEmptyMsg = document.getElementById("history-empty-msg");
   const saveFeedback = document.getElementById("save-feedback");
-
   const manageLawsBtn = document.getElementById("manage-laws-btn");
   const lawModal = document.getElementById("law-modal");
   const modalLawsListEl = document.getElementById("modal-laws-list");
@@ -21,8 +23,101 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalSearchInput = document.getElementById("modal-search-input");
   const clearHistoryBtn = document.getElementById("clear-history-btn");
 
+  const addNewLawBtn = document.getElementById("add-new-law-btn");
+  const addLawModal = document.getElementById("add-law-modal");
+  const addLawSaveBtn = document.getElementById("add-law-save-btn");
+  const addLawCancelBtn = document.getElementById("add-law-cancel-btn");
+  const addLawFeedback = document.getElementById("add-law-feedback");
+
+  const newLawDisplayNameInput = document.getElementById("new-law-displayName");
+  const newLawUrlNameInput = document.getElementById("new-law-urlName");
+
   let tempFavoriteLaws = [];
   let currentModalSettings = {};
+  let combinedLaws = await getCombinedLaws();
+
+  const deleteUserLaw = async (lawId) => {
+    const data = await chrome.storage.local.get({ userAddedLaws: {}, favoriteLaws: [] });
+    delete data.userAddedLaws[lawId];
+    data.favoriteLaws = data.favoriteLaws.filter(id => id !== lawId);
+    await chrome.storage.local.set({ 
+        userAddedLaws: data.userAddedLaws,
+        favoriteLaws: data.favoriteLaws 
+    });
+    delete currentModalSettings[lawId];
+    tempFavoriteLaws = tempFavoriteLaws.filter(id => id !== lawId);
+    combinedLaws = await getCombinedLaws();
+    renderModalLaws(currentModalSettings, tempFavoriteLaws, modalSearchInput.value);
+  };
+
+  newLawDisplayNameInput.addEventListener('input', () => {
+      const displayName = newLawDisplayNameInput.value;
+      newLawUrlNameInput.value = displayName;
+  });
+
+  addNewLawBtn.addEventListener("click", () => {
+    addLawModal.style.display = "flex";
+    document.getElementById("new-law-displayName").value = "";
+    document.getElementById("new-law-urlName").value = "";
+    document.getElementById("new-law-category").value = "";
+    addLawFeedback.style.visibility = "hidden";
+  });
+
+  addLawCancelBtn.addEventListener("click", () => { addLawModal.style.display = "none"; });
+
+  addLawSaveBtn.addEventListener("click", async () => {
+    const displayName = newLawDisplayNameInput.value.trim();
+    const urlNameRaw = newLawUrlNameInput.value.trim();
+    const urlName = urlNameRaw.replace(/ /g, '_');
+    let category = document.getElementById("new-law-category").value.trim() || "기타";
+
+    if (!displayName || !urlName) {
+      addLawFeedback.textContent = "모든 필드를 입력하세요.";
+      addLawFeedback.style.visibility = "visible";
+      return;
+    }
+
+    addLawFeedback.style.visibility = "hidden";
+    addLawSaveBtn.disabled = true;
+    addLawSaveBtn.textContent = '확인 중...';
+
+    const validationUrl = `https://casenote.kr/법령/${encodeURIComponent(urlName)}/제1조`;
+
+    try {
+      const response = await fetch(validationUrl, { method: 'HEAD' });
+
+      if (response.ok) {
+        const newLawId = `user_${Date.now()}`;
+        const newLaw = { displayName, urlName, category };
+
+        const data = await chrome.storage.local.get({ userAddedLaws: {}, settings: {} });
+        
+        data.userAddedLaws[newLawId] = newLaw;
+        data.settings[newLawId] = true;
+        
+        await chrome.storage.local.set({ 
+            userAddedLaws: data.userAddedLaws,
+            settings: data.settings
+        });
+
+        currentModalSettings[newLawId] = true;
+        
+        combinedLaws = await getCombinedLaws();
+        renderModalLaws(currentModalSettings, tempFavoriteLaws, modalSearchInput.value);
+        addLawModal.style.display = "none";
+      } else {
+        addLawFeedback.textContent = "법률을 찾을 수 없습니다.";
+        addLawFeedback.style.visibility = "visible";
+      }
+    } catch (error) {
+      console.error("법률 유효성 검사 실패:", error);
+      addLawFeedback.textContent = "법률 확인 오류 발생. 다시 시도해주세요.";
+      addLawFeedback.style.visibility = "visible";
+    } finally {
+      addLawSaveBtn.disabled = false;
+      addLawSaveBtn.textContent = '추가';
+    }
+  });
 
   quickSearchBtn.addEventListener("click", () => {
     const searchText = quickSearchInput.value.trim();
@@ -32,70 +127,42 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  quickSearchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      quickSearchBtn.click();
-    }
+  quickSearchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); quickSearchBtn.click(); } });
+
+  manageLawsBtn.addEventListener("click", async () => {
+    const result = await chrome.storage.local.get(DEFAULT_SETTINGS);
+    tempFavoriteLaws = [...result.favoriteLaws];
+    currentModalSettings = result.settings;
+    modalSearchInput.value = "";
+    renderModalLaws(currentModalSettings, tempFavoriteLaws, "");
+    lawModal.style.display = "flex";
   });
 
-  manageLawsBtn.addEventListener("click", () => {
-    chrome.storage.local.get(DEFAULT_SETTINGS, (result) => {
-      tempFavoriteLaws = [...result.favoriteLaws];
-      currentModalSettings = result.settings;
-      modalSearchInput.value = "";
-      renderModalLaws(currentModalSettings, tempFavoriteLaws, "");
-      lawModal.style.display = "flex";
-    });
-  });
-
-  modalCancelBtn.addEventListener("click", () => {
-    lawModal.style.display = "none";
-  });
+  modalCancelBtn.addEventListener("click", () => { lawModal.style.display = "none"; });
 
   modalSaveBtn.addEventListener("click", () => {
     const newSettings = {};
-    const checkboxes = modalLawsListEl.querySelectorAll(
-      "input[type='checkbox']"
-    );
-    checkboxes.forEach((checkbox) => {
-      newSettings[checkbox.dataset.id] = checkbox.checked;
-    });
-
-    const newFavoriteLaws = tempFavoriteLaws;
-
-    chrome.storage.local.set({ settings: newSettings, favoriteLaws: newFavoriteLaws }, () => {
+    modalLawsListEl.querySelectorAll("input[type='checkbox']").forEach(cb => { newSettings[cb.dataset.id] = cb.checked; });
+    chrome.storage.local.set({ settings: newSettings, favoriteLaws: tempFavoriteLaws }, () => {
       chrome.runtime.sendMessage({ action: "updateContextMenus" });
       saveFeedback.style.visibility = "visible";
-      modalSaveBtn.disabled = true;
-
       setTimeout(() => {
         saveFeedback.style.visibility = "hidden";
-        modalSaveBtn.disabled = false;
         lawModal.style.display = "none";
       }, 500);
     });
   });
 
-  modalSearchInput.addEventListener("input", (e) => {
-    const searchTerm = e.target.value;
-    renderModalLaws(currentModalSettings, tempFavoriteLaws, searchTerm);
-  });
-
-  // --- 렌더링 로직 ---
+  modalSearchInput.addEventListener("input", (e) => renderModalLaws(currentModalSettings, tempFavoriteLaws, e.target.value));
 
   const renderModalLaws = (currentSettings, currentFavorites, searchTerm) => {
     modalLawsListEl.innerHTML = "";
-    
-    const filteredLaws = Object.keys(ALL_SUPPORTED_LAWS)
-      .map(id => ({ id, ...ALL_SUPPORTED_LAWS[id] }))
-      .filter(law => 
-        law.displayName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-
+    const filteredLaws = Object.keys(combinedLaws).map(id => ({ id, ...combinedLaws[id] })).filter(law => law.displayName.toLowerCase().includes(searchTerm.toLowerCase()));
     const lawsByCategory = groupLawsByCategory(filteredLaws);
+    const customCategories = Object.keys(lawsByCategory).filter(c => !CATEGORY_ORDER.includes(c));
+    const finalCategoryOrder = [...CATEGORY_ORDER, ...customCategories.sort()];
 
-    CATEGORY_ORDER.forEach((categoryName) => {
+    finalCategoryOrder.forEach((categoryName) => {
       if (lawsByCategory[categoryName]) {
         const categoryDiv = document.createElement("div");
         categoryDiv.classList.add("modal-category-container");
@@ -103,14 +170,12 @@ document.addEventListener("DOMContentLoaded", () => {
         categoryTitle.className = "modal-category-title";
         categoryTitle.textContent = categoryName;
         categoryDiv.appendChild(categoryTitle);
-
         lawsByCategory[categoryName].forEach((law) => {
           const label = document.createElement("label");
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
           checkbox.dataset.id = law.id;
           checkbox.checked = currentSettings[law.id] === true;
-
           checkbox.addEventListener('change', () => {
               currentModalSettings[law.id] = checkbox.checked;
               if (!checkbox.checked && tempFavoriteLaws.includes(law.id)) {
@@ -118,26 +183,31 @@ document.addEventListener("DOMContentLoaded", () => {
                   star.classList.remove('favorited');
               }
           });
-
           const lawNameSpan = document.createElement("span");
           lawNameSpan.className = "law-name";
           lawNameSpan.textContent = law.displayName;
-          
+
           const star = document.createElement("span");
           star.className = "favorite-star";
           star.innerHTML = "★";
-          if (currentFavorites.includes(law.id)) {
-            star.classList.add("favorited");
+          if (currentFavorites.includes(law.id)) star.classList.add("favorited");
+          star.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite(law.id, star, checkbox); });
+          
+          label.append(checkbox, lawNameSpan);
+          if (law.id.startsWith('user_')) {
+              const deleteBtn = document.createElement('button');
+              deleteBtn.className = 'delete-law-btn';
+              deleteBtn.innerHTML = '&times;';
+              deleteBtn.title = '이 법률 삭제';
+              deleteBtn.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (confirm(`'${law.displayName}' 법률을 삭제하시겠습니까?`)) {
+                      deleteUserLaw(law.id);
+                  }
+              });
+              label.appendChild(deleteBtn);
           }
-
-          star.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleFavorite(law.id, star, checkbox);
-          });
-
-          label.appendChild(checkbox);
-          label.appendChild(lawNameSpan);
           label.appendChild(star);
           categoryDiv.appendChild(label);
         });
@@ -155,105 +225,60 @@ document.addEventListener("DOMContentLoaded", () => {
       if (tempFavoriteLaws.length < MAX_FAVORITES) {
         tempFavoriteLaws.push(lawId);
         starElement.classList.add("favorited");
-
         if (!checkboxElement.checked) {
           checkboxElement.checked = true;
           currentModalSettings[lawId] = true;
         }
-      } else {
-        alert(`즐겨찾기는 최대 ${MAX_FAVORITES}개까지 추가할 수 있습니다.`);
-      }
+      } else alert(`즐겨찾기는 최대 ${MAX_FAVORITES}개까지 추가할 수 있습니다.`);
     }
   };
 
+  const renderUI = async () => {
+    const result = await chrome.storage.local.get(DEFAULT_SETTINGS);
+    const { settings, favoriteLaws } = result;
+    favoriteLawsList.innerHTML = "";
+    if (favoriteLaws.length > 0) {
+      favoritesEmptyMsg.style.display = "none";
+      favoriteLawsList.style.display = "flex";
+      favoriteLaws.forEach(lawId => {
+        const li = document.createElement("li");
+        li.textContent = combinedLaws[lawId]?.displayName || "삭제된 법률";
+        favoriteLawsList.appendChild(li);
+      });
+    } else {
+      favoriteLawsList.style.display = "none";
+      favoritesEmptyMsg.style.display = "block";
+    }
 
-  const renderUI = () => {
-    chrome.storage.local.get(DEFAULT_SETTINGS, (result) => {
-      const { settings, favoriteLaws } = result;
-      
-      // 즐겨찾기 목록 렌더링
-      favoriteLawsList.innerHTML = "";
-      if (favoriteLaws.length > 0) {
-        favoritesEmptyMsg.style.display = "none";
-        favoriteLawsList.style.display = "flex"; // 목록이 있으면 flex로 표시
-        favoriteLaws.forEach(lawId => {
-          const li = document.createElement("li");
-          li.textContent = ALL_SUPPORTED_LAWS[lawId].displayName;
-          favoriteLawsList.appendChild(li);
-        });
-      } else {
-        favoriteLawsList.style.display = "none"; // 목록이 없으면 숨김
-        favoritesEmptyMsg.style.display = "block";
-      }
-
-      // 선택된 법률 목록 렌더링 (즐겨찾기 제외)
-      const enabledLaws = Object.keys(ALL_SUPPORTED_LAWS)
-        .filter((id) => settings[id] === true)
-        .map((id) => ({ id, ...ALL_SUPPORTED_LAWS[id] }));
-
-      // 기존에 생성된 카테고리 그룹 및 목록을 모두 삭제
-      selectedLawsContainer.querySelectorAll('.law-category-group:not(#favorites-container)').forEach(el => el.remove());
-      const oldList = document.getElementById("non-favorite-laws-list");
-      if (oldList) oldList.remove();
-
-      const nonFavoriteLaws = enabledLaws.filter(law => !favoriteLaws.includes(law.id));
-
-      // 즐겨찾기와 나머지 목록 사이에 구분선 표시
-      document.getElementById("favorites-separator").style.display = "block";
-
-      // 즐겨찾기를 제외한 나머지 법률이 하나라도 있을 경우 목록을 그림
-      if (nonFavoriteLaws.length > 0) {
-        settingsEmptyMsg.style.display = "none";
-
-        const ul = document.createElement("ul");
-        ul.id = "non-favorite-laws-list";
-        ul.className = "selected-laws-list";
-
-        nonFavoriteLaws.forEach((law) => {
-          const li = document.createElement("li");
-          li.textContent = law.displayName;
-          ul.appendChild(li);
-        });
-        selectedLawsContainer.appendChild(ul);
-      } 
-      // 활성화된 법률이 전혀 없을 때만 안내 문구 표시
-      else if (enabledLaws.length === 0) {
-        settingsEmptyMsg.style.display = "block";
-      } else {
-        settingsEmptyMsg.style.display = "none";
-      }
-    });
+    const enabledLaws = Object.keys(combinedLaws).filter((id) => settings[id]).map((id) => ({ id, ...combinedLaws[id] }));
+    selectedLawsContainer.querySelectorAll('.law-category-group:not(#favorites-container)').forEach(el => el.remove());
+    document.getElementById("non-favorite-laws-list")?.remove();
+    const nonFavoriteLaws = enabledLaws.filter(law => !favoriteLaws.includes(law.id));
+    document.getElementById("favorites-separator").style.display = "block";
+    
+    if (nonFavoriteLaws.length > 0) {
+      settingsEmptyMsg.style.display = "none";
+      const ul = document.createElement("ul");
+      ul.id = "non-favorite-laws-list";
+      ul.className = "selected-laws-list";
+      nonFavoriteLaws.forEach((law) => {
+        const li = document.createElement("li");
+        li.textContent = law.displayName;
+        ul.appendChild(li);
+      });
+      selectedLawsContainer.appendChild(ul);
+    } else if (enabledLaws.length === 0) {
+      settingsEmptyMsg.style.display = "block";
+    } else settingsEmptyMsg.style.display = "none";
   };
 
-  const groupLawsByCategory = (laws) => {
-    return laws.reduce((acc, law) => {
-      (acc[law.category] = acc[law.category] || []).push(law);
-      return acc;
-    }, {});
-  };
-
-  // --- 히스토리 관련 로직 ---
-  historyListEl.addEventListener("click", (event) => {
-    if (event.target.classList.contains("history-delete-btn")) {
-      const indexToDelete = parseInt(event.target.dataset.index, 10);
-      if (!isNaN(indexToDelete)) {
-        deleteHistoryItem(indexToDelete);
-      }
-    }
-  });
-
-  clearHistoryBtn.addEventListener("click", () => {
-    if (confirm("정말로 모든 조회 기록을 삭제하시겠습니까?")) {
-      chrome.storage.local.set({ history: [] });
-    }
-  });
+  const groupLawsByCategory = (laws) => laws.reduce((acc, law) => { (acc[law.category] = acc[law.category] || []).push(law); return acc; }, {});
 
   const renderHistory = () => {
     chrome.storage.local.get({ history: [] }, (result) => {
       const history = result.history;
       historyListEl.innerHTML = "";
       historyEmptyMsg.style.display = history.length === 0 ? "block" : "none";
-
       history.forEach((item) => {
         const li = document.createElement("li");
         const textSpan = document.createElement("span");
@@ -265,9 +290,8 @@ document.addEventListener("DOMContentLoaded", () => {
         deleteBtn.className = "history-delete-btn";
         deleteBtn.innerHTML = "&times;";
         deleteBtn.title = "기록 삭제";
-        deleteBtn.dataset.url = item.url; 
-        li.appendChild(textSpan);
-        li.appendChild(deleteBtn);
+        deleteBtn.dataset.url = item.url;
+        li.append(textSpan, deleteBtn);
         historyListEl.appendChild(li);
       });
     });
@@ -280,28 +304,71 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const deleteHistoryItem = (urlToDelete) => {
     chrome.storage.local.get({ history: [] }, (result) => {
-      const updatedHistory = result.history.filter(
-        (item) => item.url !== urlToDelete
-      );
+      const updatedHistory = result.history.filter((item) => item.url !== urlToDelete);
       chrome.storage.local.set({ history: updatedHistory });
     });
   };
 
   historyListEl.addEventListener("click", (event) => {
     if (event.target.classList.contains("history-delete-btn")) {
-      const urlToDelete = event.target.dataset.url;
-      if (urlToDelete) {
-        deleteHistoryItem(urlToDelete);
-      }
+      deleteHistoryItem(event.target.dataset.url);
     }
   });
 
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (changes.history) renderHistory();
-    if (changes.settings || changes.favoriteLaws) renderUI();
+  clearHistoryBtn.addEventListener("click", () => {
+    if (confirm("정말로 모든 조회 기록을 삭제하시겠습니까?")) {
+      chrome.storage.local.set({ history: [] });
+    }
   });
 
-  // --- 초기 로드 ---
+  chrome.storage.onChanged.addListener(async (changes, namespace) => {
+    if (changes.history) renderHistory();
+    if (changes.settings || changes.favoriteLaws || changes.userAddedLaws) {
+      if (changes.userAddedLaws) {
+        combinedLaws = await getCombinedLaws();
+      }
+      renderUI();
+    }
+  });
+
+  const resetSettingsBtn = document.getElementById("reset-settings-btn");
+  resetSettingsBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (confirm("정말로 모든 법률 설정을 초기화하시겠습니까?\n(즐겨찾기, 사용자 추가 법률, 최근 조회 기록이 모두 삭제됩니다.)")) {
+      chrome.storage.local.set({
+        settings: DEFAULT_SETTINGS.settings,
+        favoriteLaws: [],
+        userAddedLaws: {}
+      }, () => {
+        alert("설정이 초기화되었습니다.");
+      });
+    }
+  });
+
+  const applyTheme = (theme) => {
+    if (theme === 'dark') {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  };
+
+  const initializeTheme = () => {
+    chrome.storage.sync.get('theme', () => {
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(prefersDark ? 'dark' : 'light');
+    });
+  };
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    chrome.storage.sync.get('theme', ({ theme }) => {
+      if (!theme) {
+        applyTheme(e.matches ? 'dark' : 'light');
+      }
+    });
+  });
+
+  initializeTheme();
   renderUI();
   renderHistory();
 });
