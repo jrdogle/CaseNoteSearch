@@ -1,4 +1,17 @@
+const COURT_REGEX = /\d{2,4}[가-힣]+\d+/;
+const LAW_ARTICLE_REGEX = /제?\s*\d+조(의\d+)?/;
+
+// 모든 정규식을 배열로 관리하여 쉽게 확장할 수 있도록 함
+const allRegex = [
+  COURT_REGEX,
+  LAW_ARTICLE_REGEX,
+];
+
 let currentIcon = null;
+
+const isValidFormat = (text) => {
+  return allRegex.some(regex => regex.test(text));
+};
 
 const createSearchIcon = (x, y, selectedText) => {
   if (currentIcon) {
@@ -53,7 +66,7 @@ document.addEventListener("mouseup", (event) => {
   setTimeout(() => {
     const selection = window.getSelection();
     const selectedText = selection.toString().trim();
-    if (selectedText.length > 0 && selection.rangeCount > 0) {
+    if (selectedText.length > 0 && selection.rangeCount > 0 && isValidFormat(selectedText)) {
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
       createSearchIcon(rect.right, rect.bottom + 5, selectedText);
@@ -63,12 +76,9 @@ document.addEventListener("mouseup", (event) => {
 
 document.addEventListener("mousedown", (event) => {
   hideSearchIcon(event);
-  // V1.1.5 개선: 서비스 워커(백그라운드 스크립트)가 잠들어 있을 때 발생하는 지연을 줄이기 위해
-  // 사용자가 검색을 시작할 가능성이 있는 mousedown 시점에 미리 'ping'을 보내 깨워줍니다.
   try {
     chrome.runtime.sendMessage({ action: "ping" });
   } catch (e) {
-    // 팝업이 열려있는 등, 메시지를 받을 대상이 없는 경우 오류가 발생할 수 있으나 무시해도 괜찮습니다.
   }
 });
 document.addEventListener("scroll", hideSearchIcon);
@@ -104,13 +114,14 @@ window.addEventListener('load', () => {
             if (!articleContent) articleContent = mainContainer;
         }
 
-        if (articleContent) {
-            // 복사 버튼 생성
+        const parentContainer = document.querySelector('.cn-law-left');
+        const referenceNode = document.querySelector('.cn-law-body');
+
+        if (articleContent && parentContainer && referenceNode) {
             const copyButton = document.createElement('button');
             copyButton.id = 'casenote-copy-btn';
             copyButton.textContent = '조문 복사';
 
-            // 버튼 클릭 이벤트 리스너 추가
             copyButton.addEventListener('click', () => {
                 const contentClone = articleContent.cloneNode(true);
                 const titleElement = contentClone.querySelector('.article-title');
@@ -119,6 +130,7 @@ window.addEventListener('load', () => {
                 }
                 const textToCopy = contentClone.innerText
                     .replace(/\[[^\]]*\]/g, '')
+                    .replace(/<[^>]*>/g, '')
                     .replace(/\n\s*\n/g, '\n')
                     .trim();
                 navigator.clipboard.writeText(textToCopy).then(() => {
@@ -131,20 +143,22 @@ window.addEventListener('load', () => {
                     copyButton.textContent = '복사 실패';
                 });
             });
-
-            // 페이지에 버튼 추가
-            document.body.appendChild(copyButton);
+            parentContainer.insertBefore(copyButton, referenceNode);
         }
     }
     // 2. 판례 페이지: 판시사항, 판결요지 복사 버튼
     else {
-        const createPrecedentCopyButton = (element, id, defaultText) => {
+        const createPrecedentCopyButton = (contentElement, parentElement, id, defaultText) => {
             const button = document.createElement('button');
             button.id = id;
             button.textContent = defaultText;
+            button.classList.add('casenote-precedent-copy-btn');
 
-            button.addEventListener('click', () => {
-                const textToCopy = element.innerText
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const textToCopy = contentElement.innerText
                     .replace(/\n\s*\n/g, '\n').trim();
 
                 navigator.clipboard.writeText(textToCopy).then(() => {
@@ -156,47 +170,32 @@ window.addEventListener('load', () => {
                     button.textContent = '복사 실패';
                 });
             });
-            document.body.appendChild(button);
+            parentElement.appendChild(button);
             return button;
         };
 
-        // 제목 텍스트를 기반으로 요소를 찾아 버튼을 생성하는 더 안정적인 방법
         const headings = document.querySelectorAll('.panel-heading');
-        let issueButtonCreated = false;
 
         if (headings.length > 0) {
             headings.forEach(heading => {
                 const headingText = heading.textContent.trim();
-                // 제목 바로 다음 형제 요소를 내용으로 간주
                 const contentElement = heading.nextElementSibling;
 
-                if (!contentElement) {
-                    return; // 다음 제목으로 넘어감
-                }
+                if (!contentElement) return;
 
                 if (headingText.includes('판시사항')) {
-                    // 내용이 없는 특정 요소를 건너뛰는 로직
-                    if (contentElement.id === 'summary_text' && contentElement.textContent.trim() === '') {
-                        return; // 이 요소를 건너뛰고 다음 heading으로 이동
-                    }
-                    // 중복 생성을 막는 안전장치
+                    if (contentElement.id === 'summary_text' && contentElement.textContent.trim() === '') return;
+                    
                     if (!document.getElementById('casenote-copy-issue-btn')) {
-                        createPrecedentCopyButton(contentElement, 'casenote-copy-issue-btn', '판시사항 복사');
-                        issueButtonCreated = true;
+                        createPrecedentCopyButton(contentElement, heading, 'casenote-copy-issue-btn', '판시사항 복사');
                     }
                 } else if (headingText.includes('판결요지') || headingText.includes('결정요지')) {
                     if (!document.getElementById('casenote-copy-summary-btn')) {
                         const buttonText = headingText.includes('결정요지') ? '결정요지 복사' : '판결요지 복사';
-                        createPrecedentCopyButton(contentElement, 'casenote-copy-summary-btn', buttonText);
+                        createPrecedentCopyButton(contentElement, heading, 'casenote-copy-summary-btn', buttonText);
                     }
                 }
             });
-
-            // 모든 제목 확인 후, 판시사항 버튼이 없는 경우에만 판결요지 버튼 위치 조정
-            const summaryButton = document.getElementById('casenote-copy-summary-btn');
-            if (summaryButton && !issueButtonCreated) {
-                summaryButton.classList.add('casenote-copy-btn-single');
-            }
         }
     }
 });

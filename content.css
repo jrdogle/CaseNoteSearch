@@ -1,41 +1,51 @@
 #casenote-copy-btn {
-    position: fixed;
-    top: 120px;
-    right: 20px;
-    z-index: 10000;
-    padding: 5px 10px;
-    background-color: #007aff;
+    display: block;
+    width: fit-content;
+    margin: 5px auto 10px 0;
+
+    padding: 3px 8px;
+    font-size: 14px;
+    font-weight: 400;
+    white-space: nowrap;
+    
+    background-color: #1869b9;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: background-color 0.2s;
+}
+
+#casenote-copy-btn:hover {
+    background-color: #18436f;
 }
 
 /* 판례 페이지 복사 버튼 */
-#casenote-copy-issue-btn, #casenote-copy-summary-btn {
-    position: fixed;
-    right: 20px;
-    z-index: 10000;
-    padding: 5px 10px;
-    background-color: #007aff;
+.casenote-precedent-copy-btn {
+    padding: 3px 8px;
+    margin-left: 16px;
+    font-size: 14px;
+    font-weight: 400;
+    height: fit-content;
+    vertical-align: middle;
+    
+    background-color: #1869b9;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: background-color 0.2s;
 }
 
-#casenote-copy-issue-btn {
-    top: 120px;
+.casenote-precedent-copy-btn:hover {
+    background-color: #18436f;
 }
 
-#casenote-copy-summary-btn {
-    top: 160px;
-}
-
-.casenote-copy-btn-single {
-    top: 120px !important;
+.panel-heading {
+    display: flex !important;
+    align-items: center !important;
 }
 
 #casenote-search-icon {

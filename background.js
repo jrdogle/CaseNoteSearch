@@ -1,9 +1,7 @@
 import {
   ALL_SUPPORTED_LAWS,
   DEFAULT_SETTINGS,
-  CONST_COURT_REGEX,
-  SUPREME_COURT_REGEX,
-  PATENT_COURT_REGEX,
+  COURT_REGEX,
   LAW_ARTICLE_REGEX,
   CATEGORY_ORDER,
 } from "./constants.js";
@@ -324,10 +322,7 @@ const saveToHistory = (historyItem) => {
  * @returns {object|null} - 파싱 성공 시 판례 정보 객체, 실패 시 null
  */
 const parsePrecedent = (selection) => {
-  const match = 
-    selection.match(CONST_COURT_REGEX) || 
-    selection.match(SUPREME_COURT_REGEX) || 
-    selection.match(PATENT_COURT_REGEX);
+  const match = selection.match(COURT_REGEX);
 
   if (!match) {
     return null;
@@ -336,9 +331,9 @@ const parsePrecedent = (selection) => {
   const caseNumber = match[0];
   let courtInfo = { courtUrlName: "대법원", courtDisplayName: "대법원" };
 
-  if (selection.match(CONST_COURT_REGEX)) {
+  if (/[헌]/.test(caseNumber)) {
     courtInfo = { courtUrlName: "헌법재판소", courtDisplayName: "헌법재판소" };
-  } else if (selection.match(PATENT_COURT_REGEX)) {
+  } else if (/[허후흐히]|카허/.test(caseNumber)) {
     courtInfo = { courtUrlName: "특허법원", courtDisplayName: "특허법원" };
   }
 

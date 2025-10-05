@@ -38,7 +38,5 @@ export const CATEGORY_ORDER = ["공법", "민사법", "형사법", "지적재산
 export const MAX_FAVORITES = 5; // 즐겨찾기 최대 개수
 
 // 판례 및 조문 번호 식별을 위한 정규식
-export const CONST_COURT_REGEX = /\d{2,4}헌[가-아]\d+/;
-export const SUPREME_COURT_REGEX = /\d{2,4}(다|도|두)\d+/;
-export const PATENT_COURT_REGEX = /\d{2,4}(허|후|흐|히|카허)\d+/;
+export const COURT_REGEX = /\d{2,4}[가-힣]+\d+/;
 export const LAW_ARTICLE_REGEX = /제?\s*\d+조(의\d+)?/;

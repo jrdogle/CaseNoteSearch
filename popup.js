@@ -111,6 +111,14 @@ document.addEventListener("DOMContentLoaded", () => {
           checkbox.dataset.id = law.id;
           checkbox.checked = currentSettings[law.id] === true;
 
+          checkbox.addEventListener('change', () => {
+              currentModalSettings[law.id] = checkbox.checked;
+              if (!checkbox.checked && tempFavoriteLaws.includes(law.id)) {
+                  tempFavoriteLaws = tempFavoriteLaws.filter(id => id !== law.id);
+                  star.classList.remove('favorited');
+              }
+          });
+
           const lawNameSpan = document.createElement("span");
           lawNameSpan.className = "law-name";
           lawNameSpan.textContent = law.displayName;
@@ -125,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
           star.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
-            toggleFavorite(law.id, star);
+            toggleFavorite(law.id, star, checkbox);
           });
 
           label.appendChild(checkbox);
@@ -138,7 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
   
-  const toggleFavorite = (lawId, starElement) => {
+  const toggleFavorite = (lawId, starElement, checkboxElement) => {
     const isFavorited = tempFavoriteLaws.includes(lawId);
     if (isFavorited) {
       tempFavoriteLaws = tempFavoriteLaws.filter(id => id !== lawId);
@@ -147,6 +155,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (tempFavoriteLaws.length < MAX_FAVORITES) {
         tempFavoriteLaws.push(lawId);
         starElement.classList.add("favorited");
+
+        if (!checkboxElement.checked) {
+          checkboxElement.checked = true;
+          currentModalSettings[lawId] = true;
+        }
       } else {
         alert(`즐겨찾기는 최대 ${MAX_FAVORITES}개까지 추가할 수 있습니다.`);
       }
@@ -237,11 +250,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const renderHistory = () => {
     chrome.storage.local.get({ history: [] }, (result) => {
-      const history = result.history.slice(0, 5);
+      const history = result.history;
       historyListEl.innerHTML = "";
       historyEmptyMsg.style.display = history.length === 0 ? "block" : "none";
 
-      history.forEach((item, index) => {
+      history.forEach((item) => {
         const li = document.createElement("li");
         const textSpan = document.createElement("span");
         textSpan.className = "history-item-text";
@@ -252,7 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
         deleteBtn.className = "history-delete-btn";
         deleteBtn.innerHTML = "&times;";
         deleteBtn.title = "기록 삭제";
-        deleteBtn.dataset.index = index;
+        deleteBtn.dataset.url = item.url; 
         li.appendChild(textSpan);
         li.appendChild(deleteBtn);
         historyListEl.appendChild(li);
@@ -265,14 +278,23 @@ document.addEventListener("DOMContentLoaded", () => {
     window.close();
   };
 
-  const deleteHistoryItem = (indexToDelete) => {
+  const deleteHistoryItem = (urlToDelete) => {
     chrome.storage.local.get({ history: [] }, (result) => {
       const updatedHistory = result.history.filter(
-        (_, index) => index !== indexToDelete
+        (item) => item.url !== urlToDelete
       );
       chrome.storage.local.set({ history: updatedHistory });
     });
   };
+
+  historyListEl.addEventListener("click", (event) => {
+    if (event.target.classList.contains("history-delete-btn")) {
+      const urlToDelete = event.target.dataset.url;
+      if (urlToDelete) {
+        deleteHistoryItem(urlToDelete);
+      }
+    }
+  });
 
   chrome.storage.onChanged.addListener((changes, namespace) => {
     if (changes.history) renderHistory();

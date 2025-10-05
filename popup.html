@@ -147,6 +147,21 @@
       }
 
       /* --- 히스토리 --- */
+      #history-list {
+          max-height: 160px;
+          overflow-y: auto;
+          margin-top: 4px;
+      }
+      #history-list::-webkit-scrollbar {
+        width: 6px;
+      }
+      #history-list::-webkit-scrollbar-thumb {
+        background-color: #ced4da;
+        border-radius: 3px;
+      }
+      #history-list::-webkit-scrollbar-track {
+        background-color: #f8f9fa;
+      }
       #history-list li {
         display: flex;
         align-items: center;
@@ -368,6 +383,10 @@
     <div id="law-modal" class="modal-overlay">
       <div class="modal-content">
         <h3>법률 목록 관리</h3>
+        <div class="modal-description">
+          <p><b>✓ 체크:</b> 우클릭 메뉴에 법률을 표시합니다.</p>
+          <p><b>★ 즐겨찾기:</b> 자주 쓰는 법률을 메뉴 상단에 고정합니다.</p>
+        </div>
         <input type="text" id="modal-search-input" placeholder="법률 이름 검색..." style="width: 95%; padding: 6px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px;">
         <div id="modal-laws-list" class="modal-laws-list"></div>
         <div class="modal-actions">
