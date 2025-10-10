@@ -31,6 +31,7 @@ export const DEFAULT_SETTINGS = {
     criminalLaw: true,
   },
   favoriteLaws: [],
+  autoHighlight: false,
 };
 
 export const CATEGORY_ORDER = ["공법", "민사법", "형사법", "지적재산권법"];
@@ -38,5 +39,5 @@ export const CATEGORY_ORDER = ["공법", "민사법", "형사법", "지적재산
 export const MAX_FAVORITES = 5; // 즐겨찾기 최대 개수
 
 // 판례 및 조문 번호 식별을 위한 정규식
-export const COURT_REGEX = /\d{2,4}[가-힣]+\d+/;
+export const COURT_REGEX = /\d{2,4}[\u3131-\u314e|\u314f-\u3163|\uac00-\ud7a3]{1,4}\d+(?![0-9])/;
 export const LAW_ARTICLE_REGEX = /제?\s*\d+조(의\d+)?/;

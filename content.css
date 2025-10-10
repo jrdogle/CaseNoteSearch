@@ -63,3 +63,23 @@
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   padding: 0;
 }
+
+.casenote-highlight-wrapper {
+    display: contents;
+}
+
+.casenote-highlight {
+    background-color: rgba(0, 122, 255, 0.1);
+    border-radius: 3px;
+    padding: 1px 2px;
+    margin: -1px -2px;
+    
+    cursor: pointer;
+    font-weight: inherit;
+    color: inherit;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.casenote-highlight:hover {
+    background-color: rgba(0, 122, 255, 0.2);
+}

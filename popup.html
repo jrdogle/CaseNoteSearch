@@ -96,7 +96,7 @@
         .footer-links a { color: var(--text-color-muted); text-decoration: none; margin: 0 8px; transition: color 0.2s; }
         .footer-links a:hover { color: var(--accent-color); }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--modal-overlay-color); z-index: 1000; display: none; justify-content: center; align-items: center; }
-        .modal-content { background-color: var(--modal-bg-color); padding: 20px 12px; border-radius: 8px; width: 320px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+        .modal-content { position: relative; background-color: var(--modal-bg-color); padding: 20px; border-radius: 8px; width: 320px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
         .modal-content h3 { margin-top: 0; text-align: center; color: var(--text-color-strong); }
         .modal-description { font-size: 12px; color: var(--text-color-secondary); background-color: var(--modal-bg-color); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; margin-top: 8px; margin-bottom: 15px; line-height: 1.6; }
         .modal-description p { margin: 0; padding: 0; }
@@ -109,7 +109,7 @@
         .law-name { line-height: 1; color: var(--text-color-normal); }
         .favorite-star { cursor: pointer; font-size: 18px; color: #ccc; margin-left: auto; }
         .favorite-star.favorited { color: #ffc107; }
-        .modal-actions { display: flex; justify-content: flex-end; align-items: center; }
+        .modal-actions { display: flex; justify-content: flex-end; align-items: center; margin-top: 10px; }
         #save-feedback { font-size: 13px; color: var(--success-color); margin-right: 10px; visibility: hidden; }
         .modal-actions button { padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color-modal); margin-left: 8px; color: var(--text-color-normal); }
         #modal-save-btn { background-color: var(--accent-color); color: white; border-color: var(--accent-color); }
@@ -122,6 +122,21 @@
         #add-law-form input { width: 95%; padding: 8px; margin-bottom: 10px; border: 1px solid var(--border-color-modal); border-radius: 4px; font-size: 13px; background-color: var(--bg-color); color: var(--text-color-normal); }
         .delete-law-btn { background: transparent; border: none; color: var(--text-color-muted); cursor: pointer; font-size: 20px; font-weight: bold; line-height: 1; padding: 0 5px; margin-left: 8px;}
         .delete-law-btn:hover { color: var(--danger-color); }
+        .modal-close-btn { position: absolute; top: 10px; right: 15px; background: transparent; border: none; font-size: 26px; font-weight: bold; line-height: 1; color: var(--text-color-muted); cursor: pointer; padding: 5px; }
+        .modal-close-btn:hover { color: var(--text-color-normal); }
+        #settings-modal .modal-content { width: 280px; padding: 20px; }
+        .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+        .settings-item:last-child { border-bottom: none; }
+        .settings-item label { font-size: 14px; }
+        .settings-item p { margin: 5px 0 0 0; font-size: 11px; color: var(--text-color-muted); }
+        #reset-settings-btn-in-modal { width: 100%; margin-top: 15px; padding: 8px; background-color: var(--danger-color); color: white; border: none; border-radius: 4px; }
+        #reset-settings-btn-in-modal:hover { background-color: #c9302c; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; margin-left: 15px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent-color); }
+        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
 <body>
@@ -149,11 +164,12 @@
         <span style="color: #ced4da;">|</span>
         <a href="https://casenotesearch.notion.site/FAQ-2696409b0fae803b849cf52a505087df" target="_blank">의견 및 제안</a>
         <span style="color: #ced4da;">|</span>
-        <a href="#" id="reset-settings-btn">설정 초기화</a>
+        <a href="#" id="open-settings-btn">설정</a>
     </div>
 
     <div id="law-modal" class="modal-overlay">
         <div class="modal-content">
+             <button id="law-modal-close-btn" class="modal-close-btn">&times;</button>
             <h3>법률 목록 관리</h3>
             <div class="modal-description">
                 <p><b>✓ 체크:</b> 우클릭 메뉴에 법률을 표시합니다.</p>
@@ -172,6 +188,7 @@
 
     <div id="add-law-modal" class="modal-overlay">
         <div class="modal-content">
+            <button id="add-law-close-btn" class="modal-close-btn">&times;</button>
             <h3>새 법률 추가</h3>
             <div class="modal-description">
                 <p><b>표시 이름:</b> 메뉴에 표시될 법률의 이름입니다.</p>
@@ -187,6 +204,24 @@
                 <button id="add-law-cancel-btn">취소</button>
                 <button id="add-law-save-btn">추가</button>
             </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="settings-close-btn" class="modal-close-btn">&times;</button>
+            <h3>설정</h3>
+            <div class="settings-item">
+                <div>
+                    <label for="auto-highlight-toggle">자동 하이라이트 검색</label>
+                    <p>페이지 내 판례/조문 텍스트를<br />자동으로 하이라이트하고 클릭으로 검색합니다.</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="auto-highlight-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <button id="reset-settings-btn-in-modal">모든 설정 및 기록 초기화</button>
         </div>
     </div>
 

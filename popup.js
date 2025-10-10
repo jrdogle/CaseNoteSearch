@@ -16,21 +16,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   const historyEmptyMsg = document.getElementById("history-empty-msg");
   const saveFeedback = document.getElementById("save-feedback");
   const manageLawsBtn = document.getElementById("manage-laws-btn");
+  const clearHistoryBtn = document.getElementById("clear-history-btn");
+
   const lawModal = document.getElementById("law-modal");
   const modalLawsListEl = document.getElementById("modal-laws-list");
   const modalSaveBtn = document.getElementById("modal-save-btn");
   const modalCancelBtn = document.getElementById("modal-cancel-btn");
+  const lawModalCloseBtn = document.getElementById("law-modal-close-btn");
   const modalSearchInput = document.getElementById("modal-search-input");
-  const clearHistoryBtn = document.getElementById("clear-history-btn");
-
-  const addNewLawBtn = document.getElementById("add-new-law-btn");
+  
   const addLawModal = document.getElementById("add-law-modal");
+  const addNewLawBtn = document.getElementById("add-new-law-btn");
   const addLawSaveBtn = document.getElementById("add-law-save-btn");
   const addLawCancelBtn = document.getElementById("add-law-cancel-btn");
+  const addLawCloseBtn = document.getElementById("add-law-close-btn");
   const addLawFeedback = document.getElementById("add-law-feedback");
 
   const newLawDisplayNameInput = document.getElementById("new-law-displayName");
   const newLawUrlNameInput = document.getElementById("new-law-urlName");
+
+  const settingsModal = document.getElementById("settings-modal");
+  const openSettingsBtn = document.getElementById("open-settings-btn");
+  const settingsCloseBtn = document.getElementById("settings-close-btn");
+  const autoHighlightToggle = document.getElementById("auto-highlight-toggle");
+  const resetSettingsBtnInModal = document.getElementById("reset-settings-btn-in-modal");
 
   let tempFavoriteLaws = [];
   let currentModalSettings = {};
@@ -57,13 +66,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   addNewLawBtn.addEventListener("click", () => {
     addLawModal.style.display = "flex";
-    document.getElementById("new-law-displayName").value = "";
-    document.getElementById("new-law-urlName").value = "";
+    newLawDisplayNameInput.value = "";
+    newLawUrlNameInput.value = "";
     document.getElementById("new-law-category").value = "";
     addLawFeedback.style.visibility = "hidden";
   });
 
-  addLawCancelBtn.addEventListener("click", () => { addLawModal.style.display = "none"; });
+  const closeAddLawModal = () => addLawModal.style.display = "none";
+  addLawCancelBtn.addEventListener("click", closeAddLawModal);
+  addLawCloseBtn.addEventListener("click", closeAddLawModal);
 
   addLawSaveBtn.addEventListener("click", async () => {
     const displayName = newLawDisplayNameInput.value.trim();
@@ -135,8 +146,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderModalLaws(currentModalSettings, tempFavoriteLaws, "");
     lawModal.style.display = "flex";
   });
+  
+  const closeLawModal = () => lawModal.style.display = "none";
+  modalCancelBtn.addEventListener("click", closeLawModal);
+  lawModalCloseBtn.addEventListener("click", closeLawModal);
 
-  modalCancelBtn.addEventListener("click", () => { lawModal.style.display = "none"; });
 
   modalSaveBtn.addEventListener("click", () => {
     const newSettings = {};
@@ -319,6 +333,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  // --- 설정 모달 로직 ---
+  openSettingsBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    chrome.storage.local.get(DEFAULT_SETTINGS, (result) => {
+      autoHighlightToggle.checked = result.autoHighlight;
+    });
+    settingsModal.style.display = "flex";
+  });
+
+  settingsCloseBtn.addEventListener("click", () => {
+    settingsModal.style.display = "none";
+  });
+
+  autoHighlightToggle.addEventListener("change", (e) => {
+    chrome.storage.local.set({ autoHighlight: e.target.checked });
+  });
+
+  resetSettingsBtnInModal.addEventListener("click", () => {
+    if (confirm("정말로 모든 법률 설정을 초기화하시겠습니까?\n(즐겨찾기, 사용자 추가 법률, 최근 조회 기록이 모두 삭제됩니다.)")) {
+      chrome.storage.local.set({
+        ...DEFAULT_SETTINGS,
+        favoriteLaws: [],
+        userAddedLaws: {},
+        history: [] 
+      }, () => {
+        alert("설정이 초기화되었습니다.");
+        settingsModal.style.display = "none";
+      });
+    }
+  });
+
   chrome.storage.onChanged.addListener(async (changes, namespace) => {
     if (changes.history) renderHistory();
     if (changes.settings || changes.favoriteLaws || changes.userAddedLaws) {
@@ -326,21 +371,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         combinedLaws = await getCombinedLaws();
       }
       renderUI();
-    }
-  });
-
-  const resetSettingsBtn = document.getElementById("reset-settings-btn");
-  resetSettingsBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (confirm("정말로 모든 법률 설정을 초기화하시겠습니까?\n(즐겨찾기, 사용자 추가 법률, 최근 조회 기록이 모두 삭제됩니다.)")) {
-      chrome.storage.local.set({
-        settings: DEFAULT_SETTINGS.settings,
-        favoriteLaws: [],
-        userAddedLaws: {},
-        history: []
-      }, () => {
-        alert("설정이 초기화되었습니다.");
-      });
     }
   });
 

@@ -80,6 +80,32 @@ chrome.windows.onBoundsChanged.addListener((window) => {
     }, 500);
   }
 });
+const DIRECT_URL_MARKERS = new Set(['다', '도', '모', '오', '우', '초', '추', '트', '후']); 
+
+const parsePrecedent = (selection) => {
+  const match = selection.match(COURT_REGEX);
+  if (!match) return null;
+
+  const caseNumber = match[0];
+  const caseMarker = caseNumber.replace(/\d/g, ''); 
+  
+  let courtInfo = {};
+  let searchType = 'GENERAL';
+
+  if (/[헌]/.test(caseNumber)) {
+    courtInfo = { courtUrlName: "헌법재판소", courtDisplayName: "헌법재판소" };
+    searchType = 'DIRECT';
+  } else if (/[허흐]|카허/.test(caseNumber)) {
+    courtInfo = { courtUrlName: "특허법원", courtDisplayName: "특허법원" };
+    searchType = 'DIRECT';
+  } else if (DIRECT_URL_MARKERS.has(caseMarker)) {
+    courtInfo = { courtUrlName: "대법원", courtDisplayName: "대법원" };
+    searchType = 'DIRECT';
+  }
+
+  return { ...courtInfo, caseNumber, searchType };
+};
+
 
 // 지능형 검색 로직
 const handleIntelligentSearch = async (selection) => {
@@ -100,16 +126,17 @@ const handleIntelligentSearch = async (selection) => {
 
   const precedent = parsePrecedent(selection);
   if (precedent) {
-    const directURL = `https://casenote.kr/${precedent.courtUrlName}/${encodeURIComponent(precedent.caseNumber)}`;
-    const displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
-    await openCheckedUrl(directURL, selection, displayText);
+    if (precedent.searchType === 'DIRECT') {
+      const directURL = `https://casenote.kr/${precedent.courtUrlName}/${encodeURIComponent(precedent.caseNumber)}`;
+      const displayText = `${precedent.courtDisplayName} ${precedent.caseNumber}`;
+      await openCheckedUrl(directURL, selection, displayText);
+    } else {
+      openGeneralSearch(selection);
+    }
     return;
   }
 
-  const finalURL = `https://casenote.kr/search/?q=${encodeURIComponent(selection)}`;
-  const displayText = selection;
-  createPopupWindow(finalURL);
-  saveToHistory({ url: finalURL, displayText: displayText });
+  openGeneralSearch(selection);
 };
 
 // 메뉴 클릭 이벤트 리스너
@@ -133,10 +160,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   // 즐겨찾기 메뉴 또는 일반 법률 메뉴 클릭
   const lawId = menuItemId.startsWith("favorite_") ? menuItemId.replace("favorite_", "") : menuItemId;
-  // --- ▼▼▼ 수정된 부분: combinedLaws를 사용하도록 변경 ---
   if (combinedLaws[lawId]) {
     const item = combinedLaws[lawId];
-  // --- ▲▲▲ 수정 끝 ---
     const match = selection.match(LAW_ARTICLE_REGEX);
     if (match) {
       let articleTextForUrl = match[0].replace(/\s/g, "");
@@ -153,27 +178,38 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 // 팝업 및 content.js로부터 메시지를 받는 리스너
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "ping") {
-    return;
+    sendResponse({ status: "ok" });
+    return true;
   }
   
   if (request.action === "intelligentSearchFromIcon") {
     if (request.selection) {
       handleIntelligentSearch(request.selection);
     }
-    return;
+    return true;
   }
   else if (request.action === "intelligentSearchFromPopup") {
     if (request.text) {
       handleIntelligentSearch(request.text);
     }
-    return;
+    return true;
   }
   else if (request.action === "openFromHistory") {
     createPopupWindow(request.item.url);
     saveToHistory(request.item);
+    return true;
   }
   else if (request.action === "updateContextMenus") {
     updateContextMenus();
+    return true;
+  }
+  else if (request.action === "getLawList") {
+    (async () => {
+      const combinedLaws = await getCombinedLaws();
+      const lawDisplayNames = Object.values(combinedLaws).map(law => law.displayName);
+      sendResponse({ lawList: lawDisplayNames });
+    })();
+    return true;
   }
   else if (
     request.action === "updateHistoryTitle" &&
@@ -197,6 +233,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         chrome.storage.local.set({ history: history });
       }
     });
+    return true;
   }
 });
 
@@ -260,30 +297,6 @@ const saveToHistory = (historyItem) => {
     history.unshift(historyItem);
     chrome.storage.local.set({ history: history });
   });
-};
-
-/**
- * 선택된 텍스트에서 판례 정보를 파싱하는 헬퍼 함수
- * @param {string} selection - 사용자가 선택한 텍스트
- * @returns {object|null} - 파싱 성공 시 판례 정보 객체, 실패 시 null
- */
-const parsePrecedent = (selection) => {
-  const match = selection.match(COURT_REGEX);
-
-  if (!match) {
-    return null;
-  }
-
-  const caseNumber = match[0];
-  let courtInfo = { courtUrlName: "대법원", courtDisplayName: "대법원" };
-
-  if (/[헌]/.test(caseNumber)) {
-    courtInfo = { courtUrlName: "헌법재판소", courtDisplayName: "헌법재판소" };
-  } else if (/[허후흐히]|카허/.test(caseNumber)) {
-    courtInfo = { courtUrlName: "특허법원", courtDisplayName: "특허법원" };
-  }
-
-  return { ...courtInfo, caseNumber };
 };
 
 // 일반 검색을 실행하고 히스토리에 저장하는 함수
