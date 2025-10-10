@@ -1,4 +1,4 @@
-# 🔎 CaseNote 검색기 (CaseNote Search)
+# 🔎 CaseNote 검색기 (케이스노트 검색기)
 
 **어떤 웹페이지에서든 판례 번호와 법률 조문을 자동으로 인식하여, 클릭 한 번으로 CaseNote 팝업을 띄워주는 Chrome 확장 프로그램입니다.**
 
