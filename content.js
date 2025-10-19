@@ -2,7 +2,37 @@ const PRECEDENT_MARKERS = '가합|가단|가소|가|나|다|라|마|바|사|아|
 const COURT_REGEX = new RegExp(`\\d{2,4}(${PRECEDENT_MARKERS})\\d+(?![0-9])`, 'g');
 const LAW_ARTICLE_PART_REGEX = /제?\s*\d+조(의\d+)?/g; 
 
+let searchIcon;
 let autoHighlightEnabled = true;
+let dragToSearchEnabled = true;
+let strictRegex;
+
+// --- 검색 아이콘 기능 ---
+const createSearchIcon = () => {
+    if (document.getElementById("casenote-search-icon")) return;
+
+    searchIcon = document.createElement("div");
+    searchIcon.id = "casenote-search-icon";
+    const iconImage = document.createElement("img");
+    iconImage.src = chrome.runtime.getURL("images/icon48.png");
+    iconImage.style.width = "20px";
+    iconImage.style.height = "20px";
+    searchIcon.appendChild(iconImage);
+    document.body.appendChild(searchIcon);
+
+    searchIcon.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const selectedText = e.currentTarget.dataset.selection;
+        if (selectedText) {
+            chrome.runtime.sendMessage({ action: "intelligentSearchFromIcon", selection: selectedText });
+        }
+        hideSearchIcon();
+    });
+};
+
+const hideSearchIcon = () => {
+    if (searchIcon) searchIcon.style.display = "none";
+};
 
 // --- 하이라이트 기능 로직 ---
 
@@ -85,42 +115,50 @@ const applyHighlighting = (combinedRegex) => {
     scanAndHighlight(document.body, combinedRegex);
 };
 
-// --- 페이지 로딩 및 이벤트 리스너 통합 관리 ---
-
+// --- 페이지 로딩 및 통합 관리 ---
 const initialize = () => {
-    chrome.storage.local.get({ autoHighlight: true }, (settings) => {
+    chrome.storage.local.get({ autoHighlight: true, dragToSearch: true }, (settings) => {
         autoHighlightEnabled = settings.autoHighlight;
+        dragToSearchEnabled = settings.dragToSearch;
 
-        // 자동 하이라이트 기능이 켜져 있을 때만 작동
-        if (autoHighlightEnabled) {
-            chrome.runtime.sendMessage({ action: "getLawList" }, (response) => {
-                if (chrome.runtime.lastError || !response || !response.lawList) {
-                    console.error("CaseNote Search: 법률 목록을 가져올 수 없습니다.", chrome.runtime.lastError?.message);
-                    return;
-                }
-                const lawList = response.lawList;
-                if (lawList.length === 0) return;
+        chrome.runtime.sendMessage({ action: "getLawList" }, (response) => {
+            if (chrome.runtime.lastError || !response?.lawList) {
+                // 법률 목록 로드 실패 시, 판례 번호만 인식하는 기본 정규식 설정
+                strictRegex = new RegExp(`(${COURT_REGEX.source})`, 'g');
+                return;
+            };
+
+            const lawList = response.lawList;
+            if (lawList.length > 0) {
                 const lawNamesPattern = lawList.map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
                 const lawArticleFullPattern = `(?:${lawNamesPattern})\\s*${LAW_ARTICLE_PART_REGEX.source}`;
-                const combinedRegex = new RegExp(`(${COURT_REGEX.source}|${lawArticleFullPattern})`, 'g');
-                
-                applyHighlighting(combinedRegex);
-                
+                strictRegex = new RegExp(`(${COURT_REGEX.source}|${lawArticleFullPattern})`, 'g');
+            } else {
+                strictRegex = new RegExp(`(${COURT_REGEX.source})`, 'g');
+            }
+
+            // 자동 하이라이트 기능이 켜져 있으면 실행
+            if (autoHighlightEnabled) {
+                scanAndHighlight(document.body, strictRegex);
                 const observer = new MutationObserver((mutations) => {
                     mutations.forEach((mutation) => {
                         mutation.addedNodes.forEach((node) => {
-                           if (node.nodeType === Node.ELEMENT_NODE) {
-                                scanAndHighlight(node, combinedRegex);
+                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                scanAndHighlight(node, strictRegex);
                             } else {
-                                highlightTextInNode(node, combinedRegex);
+                                highlightTextInNode(node, strictRegex);
                             }
                         });
                     });
                 });
                 observer.observe(document.body, { childList: true, subtree: true });
-            });
+            }
+        });
+        
+        // 드래그 검색 기능이 켜져 있으면 아이콘 생성
+        if (dragToSearchEnabled) {
+            createSearchIcon();
         }
-        // '드래그-클릭' 기능(else 블록)은 완전히 제거됨
     });
 
     // 히스토리 제목 업데이트 기능
@@ -134,7 +172,42 @@ const initialize = () => {
     }, 100);
 };
 
-// --- 복사 버튼 기능 ---
+// --- 이벤트 리스너 등록 ---
+document.addEventListener("mouseup", (e) => {
+    if (!dragToSearchEnabled || !searchIcon || !strictRegex) return;
+    if (e.target.closest("#casenote-search-icon, .casenote-highlight")) return;
+    if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        hideSearchIcon();
+        return;
+    }
+    setTimeout(() => {
+        const selection = window.getSelection();
+        const selectedText = selection.toString().trim();
+
+        // 정규식 lastIndex 초기화
+        strictRegex.lastIndex = 0;
+
+        // 하이라이트와 동일한 '엄격한' 정규식을 사용하여 텍스트 검사
+        if (selectedText && strictRegex.test(selectedText)) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            searchIcon.style.display = "flex";
+            searchIcon.style.top = `${window.scrollY + rect.bottom + 5}px`;
+            searchIcon.style.left = `${window.scrollX + rect.left}px`;
+            searchIcon.dataset.selection = selectedText;
+        } else {
+            hideSearchIcon();
+        }
+    }, 10);
+});
+
+document.addEventListener("mousedown", (e) => {
+    if (!dragToSearchEnabled) return;
+    if (e.target.id !== "casenote-search-icon" && !e.target.closest("#casenote-search-icon")) {
+        hideSearchIcon();
+    }
+});
+
 window.addEventListener('load', () => {
     initialize();
     
@@ -230,5 +303,7 @@ window.addEventListener('load', () => {
             }
         }
     }
-    copyButtonLogic();
+
+    const observer = new MutationObserver(() => copyButtonLogic());
+    observer.observe(document.body, { childList: true, subtree: true });
 });

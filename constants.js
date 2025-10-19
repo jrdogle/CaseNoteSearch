@@ -32,6 +32,7 @@ export const DEFAULT_SETTINGS = {
   },
   favoriteLaws: [],
   autoHighlight: true,
+  dragToSearch: true,
 };
 
 export const CATEGORY_ORDER = ["공법", "민사법", "형사법", "지적재산권법"];

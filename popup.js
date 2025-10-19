@@ -39,6 +39,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const openSettingsBtn = document.getElementById("open-settings-btn");
   const settingsCloseBtn = document.getElementById("settings-close-btn");
   const autoHighlightToggle = document.getElementById("auto-highlight-toggle");
+  const dragToSearchToggle = document.getElementById("drag-to-search-toggle");
   const resetSettingsBtnInModal = document.getElementById("reset-settings-btn-in-modal");
 
   let tempFavoriteLaws = [];
@@ -338,6 +339,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     e.preventDefault();
     chrome.storage.local.get(DEFAULT_SETTINGS, (result) => {
       autoHighlightToggle.checked = result.autoHighlight;
+      dragToSearchToggle.checked = result.dragToSearch;
     });
     settingsModal.style.display = "flex";
   });
@@ -348,6 +350,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   autoHighlightToggle.addEventListener("change", (e) => {
     chrome.storage.local.set({ autoHighlight: e.target.checked });
+  });
+
+  dragToSearchToggle.addEventListener("change", (e) => {
+    chrome.storage.local.set({ dragToSearch: e.target.checked });
   });
 
   resetSettingsBtnInModal.addEventListener("click", () => {
