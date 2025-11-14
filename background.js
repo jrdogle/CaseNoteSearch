@@ -13,50 +13,95 @@ const getCombinedLaws = async () => {
 
 let popupWindowId = null;
 let debounceTimer = null;
+let isUpdatingMenus = false;
 
 const updateContextMenus = async () => {
-  const combinedLaws = await getCombinedLaws();
+  // 1. 이미 메뉴 업데이트가 실행 중인지 확인 (잠금 확인)
+  if (isUpdatingMenus) {
+    console.log("Context menu update already in progress, skipping.");
+    return;
+  }
+  // 2. 잠금 설정
+  isUpdatingMenus = true;
+  console.log("Starting context menu update...");
 
-  chrome.contextMenus.removeAll(async () => {
-    chrome.contextMenus.create({ id: "casenoteParent", title: "CaseNote에서 검색", contexts: ["selection"] });
-    chrome.contextMenus.create({ id: "PrecedentSearch", parentId: "casenoteParent", title: "판례 검색", contexts: ["selection"] });
-
+  try {
+    // 3. 메뉴 생성에 필요한 모든 데이터를 *미리* 로드합니다.
+    const combinedLaws = await getCombinedLaws();
     const result = await chrome.storage.local.get(DEFAULT_SETTINGS);
     const { settings, favoriteLaws } = result;
-    
-    if (favoriteLaws && favoriteLaws.length > 0) {
-      chrome.contextMenus.create({ id: "separator_favorites", parentId: "casenoteParent", type: "separator", contexts: ["selection"] });
-      favoriteLaws.forEach(lawId => {
-        const law = combinedLaws[lawId];
-        if (law) {
-          chrome.contextMenus.create({ id: `favorite_${lawId}`, parentId: "casenoteParent", title: `${law.displayName} 조문 검색`, contexts: ["selection"] });
-        }
-      });
-    }
 
-    chrome.contextMenus.create({ id: "separator_laws", parentId: "casenoteParent", type: "separator", contexts: ["selection"] });
-
-    const enabledLaws = Object.keys(combinedLaws).filter(id => settings[id]).map(id => ({ id, ...combinedLaws[id] }));
-    const nonFavoriteEnabledLaws = enabledLaws.filter(law => !favoriteLaws.includes(law.id));
-    const categories = nonFavoriteEnabledLaws.reduce((acc, law) => {
-      (acc[law.category] = acc[law.category] || []).push(law);
-      return acc;
-    }, {});
-
-    const customCategories = Object.keys(categories).filter(c => !CATEGORY_ORDER.includes(c));
-    const finalCategoryOrder = [...CATEGORY_ORDER, ...customCategories.sort()];
-
-    finalCategoryOrder.forEach(categoryName => {
-      if (categories[categoryName]) {
-          const categoryLaws = categories[categoryName];
-          const categoryParentId = `category-${categoryName}`;
-          chrome.contextMenus.create({ id: categoryParentId, parentId: "casenoteParent", title: categoryName, contexts: ["selection"] });
-          categoryLaws.forEach(law => {
-            chrome.contextMenus.create({ id: law.id, parentId: categoryParentId, title: `${law.displayName} 조문 검색`, contexts: ["selection"] });
-          });
+    // 4. 모든 메뉴를 제거하고, 콜백 함수 안에서 새 메뉴를 생성합니다.
+    chrome.contextMenus.removeAll(() => {
+      // removeAll이 완료된 후 이 콜백이 실행됩니다.
+      
+      if (chrome.runtime.lastError) {
+        console.error(`removeAll 오류: ${chrome.runtime.lastError.message}`);
+        // 오류가 발생해도 생성을 시도합니다.
       }
-    });
-  });
+
+      // 5. 메뉴 생성 (오류 처리를 위해 헬퍼 함수 사용)
+      const createMenuItem = (options) => {
+        chrome.contextMenus.create(options, () => {
+          if (chrome.runtime.lastError) {
+            // ID 중복 오류 등이 여기서 잡힐 수 있지만, 잠금 로직 하에서는 발생 빈도가 줄어듭니다.
+            console.warn(`메뉴 생성 오류 (ID: ${options.id}): ${chrome.runtime.lastError.message}`);
+          }
+        });
+      };
+
+      try {
+        createMenuItem({ id: "casenoteParent", title: "CaseNote에서 검색", contexts: ["selection"] });
+        createMenuItem({ id: "PrecedentSearch", parentId: "casenoteParent", title: "판례 검색", contexts: ["selection"] });
+
+        if (favoriteLaws && favoriteLaws.length > 0) {
+          createMenuItem({ id: "separator_favorites", parentId: "casenoteParent", type: "separator", contexts: ["selection"] });
+          favoriteLaws.forEach(lawId => {
+            const law = combinedLaws[lawId];
+            if (law) {
+              createMenuItem({ id: `favorite_${lawId}`, parentId: "casenoteParent", title: `${law.displayName} 조문 검색`, contexts: ["selection"] });
+            }
+          });
+        }
+
+        createMenuItem({ id: "separator_laws", parentId: "casenoteParent", type: "separator", contexts: ["selection"] });
+
+        const enabledLaws = Object.keys(combinedLaws).filter(id => settings[id]).map(id => ({ id, ...combinedLaws[id] }));
+        const nonFavoriteEnabledLaws = enabledLaws.filter(law => !favoriteLaws.includes(law.id));
+        const categories = nonFavoriteEnabledLaws.reduce((acc, law) => {
+          (acc[law.category] = acc[law.category] || []).push(law);
+          return acc;
+        }, {});
+
+        const customCategories = Object.keys(categories).filter(c => !CATEGORY_ORDER.includes(c));
+        const finalCategoryOrder = [...CATEGORY_ORDER, ...customCategories.sort()];
+
+        finalCategoryOrder.forEach(categoryName => {
+          if (categories[categoryName]) {
+            const categoryLaws = categories[categoryName];
+            const categoryParentId = `category-${categoryName}`;
+            createMenuItem({ id: categoryParentId, parentId: "casenoteParent", title: categoryName, contexts: ["selection"] });
+            categoryLaws.forEach(law => {
+              createMenuItem({ id: law.id, parentId: categoryParentId, title: `${law.displayName} 조문 검색`, contexts: ["selection"] });
+            });
+          }
+        });
+      
+      } catch (e) {
+          // 동기적 오류 (예: createMenuItem 함수 자체의 문제)
+          console.error("컨텍스트 메뉴 생성 중 동기적 오류:", e.message);
+      } finally {
+        // 6. 콜백 내의 모든 작업이 완료되면 잠금을 해제합니다.
+        console.log("Context menu update finished.");
+        isUpdatingMenus = false;
+      }
+    }); // removeAll 콜백 끝
+
+  } catch (error) {
+    // await (데이터 로드) 중 오류 발생 시
+    console.error("메뉴 업데이트를 위한 데이터 로드 중 오류:", error);
+    isUpdatingMenus = false; // 잠금 해제
+  }
 };
 
 chrome.runtime.onInstalled.addListener(updateContextMenus);

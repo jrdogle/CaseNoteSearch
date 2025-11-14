@@ -49,6 +49,7 @@
 }
 
 #casenote-search-icon {
+  display: none;
   position: absolute;
   z-index: 99999;
   cursor: pointer;
@@ -57,7 +58,6 @@
   border-radius: 10%;
   width: 24px;
   height: 24px;
-  display: flex;
   justify-content: center;
   align-items: center;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);

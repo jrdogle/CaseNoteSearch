@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "CaseNote 케이스노트 검색기",
-  "version": "1.4",
-  "version_name": "1.4",
+  "version": "1.4.2",
+  "version_name": "1.4.2",
   "description": "웹페이지의 법률 조문, 판례 번호를 '복사-붙여넣기' 없이, 1초 만에 케이스노트(CaseNote)에서 검색하세요.",
   "permissions": [
     "contextMenus",
